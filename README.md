@@ -67,7 +67,7 @@ node tools/simular-plataforma.js   # opcional: confere se o bot falha sem o truq
 - Sprites: RPG Urban Pack, [Kenney](https://kenney.nl) (CC0).
 - Sons: efeitos da Kenney (CC0), via pacote de recursos do Python Arcade. O sub-grave é sintetizado com Web Audio.
 - Fontes: Kenney Mini Square e Kenney Pixel (CC0); Atkinson Hyperlegible e JetBrains Mono (OFL, via Google Fonts).
-- Constantes de física: código do Player de [Celeste](https://github.com/NoelFB/Celeste), de Noel Berry, escaladas ×1,6.
+- Constantes de física: código do Player de [Celeste](https://github.com/NoelFB/Celeste), de Noel Berry.
 
 ## Referências
 

@@ -680,9 +680,9 @@ const TECH = [
   "chip": "recuo",
   "title": "Recuo (kickback)",
   "src": "Art of Screenshake",
-  "desc": "A arma recua alguns pixels, o jogador é empurrado para trás e a câmera dá um tranco contra a direção do tiro.",
-  "why": "São três truques num slide só: a arma recua, o jogador é empurrado (isso muda a jogabilidade: atirar enquanto foge te ajuda) e a câmera dá um tranco.",
-  "code": "recuoArma = <span class=\"n\">3f</span>;      <span class=\"c\">// volta a 0 com lerp</span>\nknock -= dir * <span class=\"n\">40f</span>;  <span class=\"c\">// empurra o jogador</span>\ncamKick -= dir * <span class=\"n\">4f</span>; <span class=\"c\">// tranco na câmera</span>"
+  "desc": "A arma recua e a câmera dá um tranco contra a direção do tiro.",
+  "why": "São dois truques num slide só, e nenhum mexe na jogabilidade: o tiro ganha força sem tirar o controle do jogador.",
+  "code": "recuoArma = <span class=\"n\">3f</span>;      <span class=\"c\">// volta a 0 com lerp</span>\ncamKick -= dir * <span class=\"n\">4f</span>; <span class=\"c\">// tranco na câmera</span>"
  },
  {
   "id": "camera",
@@ -1128,7 +1128,7 @@ class Arena extends Phaser.Scene {
       this.muzzle.setPosition(tipX + cx * 3, tipY + cy * 3).setRotation(P.aim).setScale(rand(0.7, 1.2)).setVisible(true);
       this.muzzleT = 45;
     }
-    if (J.kick) { P.recoil = 3; P.kx -= cx * 40; P.ky -= cy * 40; this.cam.kx -= cx * 4; this.cam.ky -= cy * 4; }
+    if (J.kick) { P.recoil = 3; this.cam.kx -= cx * 4; this.cam.ky -= cy * 4; }
     this.addTrauma(J.fire ? 0.05 : 0.08);
     if (J.perm) {
       const sh = this.add.image(P.x, P.y, 'shell').setDepth(7500);
@@ -1311,7 +1311,7 @@ class Arena extends Phaser.Scene {
     if (this.trauma > 0) {
       const s = this.trauma * this.trauma;
       const nt = this.time.now / 1000 * 25;
-      sx = 9 * s * ruido(nt, 0); sy = 9 * s * ruido(nt, 1);
+      sx = 5 * s * ruido(nt, 0); sy = 5 * s * ruido(nt, 1);
       this.trauma = Math.max(0, this.trauma - dt * 1.6);
     }
     if (!J.shake) this.trauma = 0;
