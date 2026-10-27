@@ -89,6 +89,8 @@ em{font-style:normal;color:var(--mustard)}
 .card.hot{border-color:var(--sauce);box-shadow:6px 6px 0 rgba(255,90,54,.25)}
 .card.hot h3{color:var(--sauce)}
 /* quem fala */
+.s-me h2{margin-bottom:10px}
+.s-me .cargo{font-family:var(--label);font-size:28px;color:var(--mustard);margin:0 0 28px}
 .s-me .me{display:grid;grid-template-columns:330px 1fr;gap:48px;align-items:start;margin-top:8px}
 .s-me .who{display:flex;flex-direction:column;gap:22px}
 .s-me .foto{width:300px;height:300px;object-fit:cover;display:block;border:3px solid var(--line);box-shadow:8px 8px 0 #0b0818}
@@ -212,6 +214,7 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
   <section class="slide s-me" data-game="off">
     <p class="eyebrow">QUEM FALA</p>
     <h2>Thiago Cortez</h2>
+    <p class="cargo">Fundador e programador</p>
     <div class="me">
       <div class="who">
         {{FOTO_TAG}}
