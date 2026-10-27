@@ -704,9 +704,9 @@ const TECH = [
   "chip": "permanência",
   "title": "Permanência",
   "src": "Art of Screenshake",
-  "desc": "Cápsulas, corpos e manchas ficam no chão para sempre, carimbados numa RenderTexture: uma imagem única onde uma câmera que nunca limpa a tela vai desenhando por cima. Mil corpos custam o mesmo que um.",
+  "desc": "Cápsulas e manchas ficam no chão para sempre, carimbadas numa RenderTexture: uma imagem única onde uma câmera que nunca limpa a tela vai desenhando por cima. Mil manchas custam o mesmo que uma. Os corpos somem em 5 s.",
   "why": "O mundo lembra do que você fez. Depois de um minuto, o chão conta a história da partida.",
-  "code": "<span class=\"c\">// câmera de decals que nunca limpa a tela</span>\ndc.clearFlags = <span class=\"t\">CameraClearFlags</span>.Nothing;\ndc.targetTexture = chaoRT;\n<span class=\"c\">// posiciona corpo e mancha, carimba 1 vez</span>\ndc.Render();\n<span class=\"t\">Destroy</span>(corpo);"
+  "code": "<span class=\"c\">// câmera de decals que nunca limpa a tela</span>\ndc.clearFlags = <span class=\"t\">CameraClearFlags</span>.Nothing;\ndc.targetTexture = chaoRT;\n<span class=\"c\">// mancha: carimba 1 vez e esquece</span>\ndc.Render();\n<span class=\"c\">// corpo: some em 5 s e é destruído</span>\ncorpo.DOFade(<span class=\"n\">0f</span>, <span class=\"n\">5f</span>).OnComplete(() =&gt; <span class=\"t\">Destroy</span>(corpo.gameObject));"
  },
  {
   "id": "squash",
@@ -974,7 +974,7 @@ class Arena extends Phaser.Scene {
     this.muzzle = this.add.image(0, 0, 'muzzle').setVisible(false).setDepth(9000).setBlendMode(Phaser.BlendModes.ADD);
     this.muzzleT = 0;
 
-    this.enemies = []; this.bullets = []; this.shells = []; this.texts = [];
+    this.enemies = []; this.bullets = []; this.shells = []; this.texts = []; this.corpses = [];
     this.spawnT = 0; this.freeze = 0; this.trauma = 0; this.kills = 0;
     this.cam = { x: WW / 2, y: WH / 2, kx: 0, ky: 0 };
     this.lastInput = -1e9;
@@ -1025,7 +1025,7 @@ class Arena extends Phaser.Scene {
     }
   }
 
-  clearFloor(){ this.decals.clear(); this.shells.forEach(s => s.sprite.destroy()); this.shells = []; }
+  clearFloor(){ this.decals.clear(); this.shells.forEach(s => s.sprite.destroy()); this.shells = []; this.corpses.forEach(c => { this.tweens.killTweensOf(c); c.destroy(); }); this.corpses = []; }
 
   reset(){
     this.enemies.forEach(e => e.sprite.destroy()); this.enemies = [];
@@ -1203,8 +1203,11 @@ class Arena extends Phaser.Scene {
     this.addTrauma(J.boom ? 0.45 : 0.3);
     if (J.perm) {
       this.splat(e.x, e.y, 6, 7);
-      this.decals.stamp('urban', CH(e.who, 0, Math.cos(ang) < 0 ? 3 : 0), e.x + Math.cos(ang) * 6, e.y + 4 + Math.sin(ang) * 6,
-        { angle: Math.cos(ang) < 0 ? -90 : 90, tint: 0xa8d49a, originX: 0.5, originY: 0.5 });
+      // corpo: sprite próprio que some em 5 s e é destruído no fim
+      const c = this.add.image(e.x + Math.cos(ang) * 6, e.y + 4 + Math.sin(ang) * 6, 'urban', CH(e.who, 0, Math.cos(ang) < 0 ? 3 : 0))
+        .setAngle(Math.cos(ang) < 0 ? -90 : 90).setTint(0xa8d49a).setDepth(2);
+      this.corpses.push(c);
+      this.tweens.add({ targets: c, alpha: 0, duration: 5000, onComplete: () => { c.destroy(); this.corpses.splice(this.corpses.indexOf(c), 1); } });
     }
     if (J.impact) { this.goo.setEmitterAngle({ min: 0, max: 360 }); this.goo.explode(10, e.x, e.y); }
     if (J.boom) {
