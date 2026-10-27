@@ -2,12 +2,12 @@
 
 Apresentação interativa da palestra **"Game Feel: Adicionando o molho nos seus jogos"**, de Thiago Cortez, para a SECOMP · UFAL.
 
-São 40 slides navegáveis no navegador, com dois jogos pixel art rodando dentro da apresentação (feitos em [Phaser 3](https://phaser.io)):
+São 41 slides navegáveis no navegador, com dois jogos pixel art rodando dentro da apresentação (feitos em [Phaser 3](https://phaser.io)):
 
-1. **Teoria (slides 1 a 8):** game feel segundo Steve Swink, as seis peças, os 7 princípios.
-2. **Parte 1, controles (slides 9 a 16):** um jogo de plataforma com a física de *Celeste*. Um bot com timing humano falha sem cada truque e passa com ele: coyote time, jump buffer, correção de quina, pulo variável e meia gravidade no ápice.
-3. **Parte 2, juice (slides 17 a 36):** um shooter top-down que começa sem nenhum efeito e ganha uma técnica por slide, até as 17 (animação, som, muzzle flash, flash branco, knockback, hitstop, screen shake, câmera, permanência, squash & stretch, sons graves, explosão, UI).
-4. **Fechamento (slides 37 a 40):** cuidados, receita de bolso e referências.
+1. **Abertura e teoria (slides 1 a 9):** quem fala, game feel segundo Steve Swink, as seis peças, os 7 princípios.
+2. **Parte 1, controles (slides 10 a 17):** um jogo de plataforma com a física de *Celeste*. Um bot com timing humano falha sem cada truque e passa com ele: coyote time, jump buffer, correção de quina, pulo variável e meia gravidade no ápice.
+3. **Parte 2, juice (slides 18 a 37):** um shooter top-down que começa sem nenhum efeito e ganha uma técnica por slide, até as 17 (animação, som, muzzle flash, flash branco, knockback, hitstop, screen shake, câmera, permanência, squash & stretch, sons graves, explosão, UI).
+4. **Fechamento (slides 38 a 41):** cuidados, receita de bolso e referências.
 
 Os trechos de código nos slides estão em C# no estilo Unity.
 
@@ -48,6 +48,7 @@ src/deck.html               slides, estilos, jogos e lógica (fonte principal)
 src/plat.js                 física e fases do jogo de plataforma
 src/build.py                embute assets e gera index.html e dist/
 assets/                     sprites, sons e fontes (CC0)
+assets/sobre/               foto, logo da Mango Salad e capas dos jogos (slide 2)
 tools/simular-plataforma.js testa cada fase com o truque desligado e ligado
 docs/qrcode.png, .svg       QR code para a página publicada
 ```

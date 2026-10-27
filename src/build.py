@@ -17,6 +17,14 @@ body = body.replace('{{FONT_MINI}}', b64(A / 'fonts' / 'Kenney_Mini_Square.ttf')
 body = body.replace('{{FONT_PIXEL}}', b64(A / 'fonts' / 'Kenney_Pixel.ttf'))
 body = body.replace('{{ASSETS_JSON}}', json.dumps(assets))
 body = body.replace('{{QR_PNG}}', b64(ROOT / 'docs' / 'qrcode.png'))
+S = A / 'sobre'
+foto = next((f for f in sorted(S.glob('foto.*'))), None)
+mime = {'.jpg': 'jpeg', '.jpeg': 'jpeg', '.png': 'png', '.webp': 'webp'}
+body = body.replace('{{FOTO_TAG}}', f'<img class="foto" src="data:image/{mime[foto.suffix.lower()]};base64,{b64(foto)}" alt="Thiago Cortez">'
+                    if foto else '<div class="foto vazia" aria-hidden="true">TC</div>')
+body = body.replace('{{LOGO_MSG}}', b64(S / 'mango-salad.png'))
+body = body.replace('{{IMG_HARPOONER}}', b64(S / 'harpooner.jpg'))
+body = body.replace('{{IMG_ALAGADO}}', b64(S / 'alagado.jpg'))
 body = body.replace('/*PLAT_JS*/', (ROOT / 'src' / 'plat.js').read_text(encoding='utf-8'))
 
 (ROOT / 'dist').mkdir(exist_ok=True)
