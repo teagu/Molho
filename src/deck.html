@@ -98,11 +98,6 @@ ol.road li::before{content:counter(r,decimal-leading-zero);font-family:var(--lab
 ol.road li b{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.05}
 ol.road li span{font-size:19px;line-height:1.4;color:var(--muted)}
 
-.cycle{display:grid;grid-template-columns:440px 1fr;gap:48px;align-items:center}
-.cycle svg{width:440px;height:440px}
-.cycle ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:20px}
-.cycle li{font-size:22px;line-height:1.4;color:var(--muted)}
-.cycle li b{display:block;color:var(--fg);font-size:24px}
 
 .six{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .six .card{padding:18px 20px}
@@ -208,7 +203,7 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
     <h2>Do que vamos falar</h2>
     <ol class="road">
       <li><b>O que é game feel</b><span>A definição de Steve Swink: controle em tempo real, espaço simulado e juice.</span></li>
-      <li><b>Por que sentimos</b><span>O ciclo de correção de ~240 ms e as seis peças que o designer pode mexer.</span></li>
+      <li><b>Onde mexer</b><span>As seis peças que o designer pode mexer e os 7 princípios de Swink.</span></li>
       <li><b>Controles</b><span>Os perdões invisíveis de Celeste: coyote time, jump buffer, correção de quina e mais.</span></li>
       <li><b>Juice</b><span>O que duas palestras clássicas ensinaram: <i>Juice it or lose it</i> e <i>The Art of Screenshake</i>.</span></li>
       <li><b>Mão na massa</b><span>Um shooter sem graça nenhuma. A cada slide, uma técnica nova até ele ficar suculento.</span></li>
@@ -224,30 +219,6 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
       <div class="card"><span class="tag">BLOCO 1</span><h3>Controle em tempo real</h3><p>O jogador age, o jogo responde, o jogador corrige. Sem pausa, sem turno.</p></div>
       <div class="card"><span class="tag">BLOCO 2</span><h3>Espaço simulado</h3><p>Colisões, distâncias e obstáculos que dão sentido ao movimento.</p></div>
       <div class="card"><span class="tag">BLOCO 3</span><h3>Juice</h3><p>Animações, sons, partículas e câmera que “vendem” a interação.</p></div>
-    </div>
-  </section>
-
-  <!-- 4. ciclo -->
-  <section class="slide" data-game="off">
-    <p class="eyebrow">GAME FEEL E PERCEPÇÃO HUMANA</p>
-    <h2>O ciclo de correção</h2>
-    <div class="cycle">
-      <svg viewBox="0 0 440 440" role="img" aria-label="Ciclo de correção de 240 milissegundos: perceber 100, pensar 70, agir 70">
-        <circle cx="220" cy="220" r="170" fill="none" stroke="#3a2e5c" stroke-width="34"/>
-        <!-- 100/240 = 150°, 70/240 = 105° -->
-        <path d="M220 50 A170 170 0 0 1 367.2 305" fill="none" stroke="#ff5a36" stroke-width="34"/>
-        <path d="M361.4 314.4 A170 170 0 0 1 128.7 363.3" fill="none" stroke="#ffc94a" stroke-width="34"/>
-        <path d="M120 357.6 A170 170 0 0 1 214 50.1" fill="none" stroke="#8fdc72" stroke-width="34"/>
-        <text x="220" y="212" text-anchor="middle" fill="#f4ede0" font-family="KMini, monospace" font-size="64">240</text>
-        <text x="220" y="256" text-anchor="middle" fill="#a89cc8" font-family="KPixel, monospace" font-size="30">ms por ciclo</text>
-      </svg>
-      <ul>
-        <li><b><span class="sauce">Perceber</span> ~100 ms</b>Processador perceptivo (50–200 ms)</li>
-        <li><b><span class="mustard">Pensar</span> ~70 ms</b>Processador cognitivo (30–100 ms)</li>
-        <li><b><span style="color:var(--zombie)">Agir</span> ~70 ms</b>Processador motor (25–170 ms)</li>
-        <li style="color:var(--fg)">O jogo precisa responder em até <em>~100 ms</em>, de forma contínua, para a sensação de controle não quebrar. Cada técnica de hoje é uma resposta extra dentro desse ciclo.</li>
-        <li class="src">Modelo do Processador Humano (Card, Moran e Newell), citado por Swink no cap. 2</li>
-      </ul>
     </div>
   </section>
 
@@ -615,7 +586,7 @@ const TECH = [
   "title": "Hitstop (sleep)",
   "src": "Art of Screenshake",
   "desc": "O jogo congela 1 quadro (~16 ms) em cada acerto, ~50 ms quando um zumbi morre e ~90 ms quando o jogador apanha. A câmera continua tremendo.",
-  "why": "A pausa dá ao cérebro tempo de registrar o golpe. Cuidado: congelar é atrasar a resposta. Fique abaixo dos ~100 ms do ciclo de correção, ou o controle parece travar.",
+  "why": "A pausa dá ao cérebro tempo de registrar o golpe. Cuidado: congelar é atrasar a resposta. Fique abaixo de ~100 ms, ou o controle parece travar.",
   "code": "<span class=\"t\">IEnumerator</span> Hitstop(<span class=\"k\">float</span> s) {\n  <span class=\"t\">Time</span>.timeScale = <span class=\"n\">0f</span>;\n  <span class=\"k\">yield</span> <span class=\"k\">return</span> <span class=\"k\">new</span> <span class=\"t\">WaitForSecondsRealtime</span>(s);\n  <span class=\"t\">Time</span>.timeScale = <span class=\"n\">1f</span>;\n}\n<span class=\"c\">// StartCoroutine(Hitstop(0.05f));</span>"
  },
  {
