@@ -2,13 +2,13 @@
 
 Apresentação interativa da palestra **"Game Feel: Adicionando o molho nos seus jogos"**, de Thiago Cortez, para a SECOMP · UFAL.
 
-São 42 slides navegáveis no navegador, com dois jogos pixel art rodando dentro da apresentação (feitos em [Phaser 3](https://phaser.io)):
+São 43 slides navegáveis no navegador, com dois jogos pixel art rodando dentro da apresentação (feitos em [Phaser 3](https://phaser.io)):
 
-1. **Abertura e teoria (slides 1 a 9):** quem fala, game feel segundo Steve Swink, as seis peças, os 7 princípios.
-2. **Parte 1, controles (slides 10 a 17):** um jogo de plataforma com a física de *Celeste*. Um bot com timing humano falha sem cada truque e passa com ele: coyote time, jump buffer, correção de quina, pulo variável e meia gravidade no ápice.
-3. **Parte 2, juice (slides 18 a 37):** um shooter top-down que começa sem nenhum efeito e ganha uma técnica por slide, até as 17 (animação, som, muzzle flash, flash branco, knockback, hitstop, screen shake, câmera, permanência, squash & stretch, sons graves, explosão, UI).
-4. **Exemplo real (slide 38):** pausa para abrir o [Harpooner](https://store.steampowered.com/app/4259930/Harpooner/) e mostrar as mesmas técnicas num jogo de verdade.
-5. **Fechamento (slides 39 a 42):** cuidados, receita de bolso e referências.
+1. **Abertura e teoria (slides 1 a 10):** quem fala, game feel segundo Steve Swink, as seis peças, os 7 princípios e o ciclo de correção (por que ~100 ms importam).
+2. **Parte 1, controles (slides 11 a 18):** um jogo de plataforma com a física de *Celeste*. Um bot com timing humano falha sem cada truque e passa com ele: coyote time, jump buffer, correção de quina, pulo variável e meia gravidade no ápice.
+3. **Parte 2, juice (slides 19 a 38):** um shooter top-down que começa sem nenhum efeito e ganha uma técnica por slide, até as 17 (animação, som, muzzle flash, flash branco, knockback, hitstop, screen shake, câmera, permanência, squash & stretch, sons graves, explosão, UI).
+4. **Exemplo real (slide 39):** pausa para abrir o [Harpooner](https://store.steampowered.com/app/4259930/Harpooner/) e mostrar as mesmas técnicas num jogo de verdade.
+5. **Fechamento (slides 40 a 43):** cuidados, receita de bolso e referências.
 
 Os trechos de código nos slides estão em C# no estilo Unity.
 

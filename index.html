@@ -116,6 +116,11 @@ em{font-style:normal;color:var(--mustard)}
 blockquote{margin:0;border-left:6px solid var(--sauce);padding:6px 0 6px 26px;font-size:34px;line-height:1.3;font-weight:700;max-width:28em;text-wrap:balance}
 blockquote cite{display:block;margin-top:14px;font-style:normal;font-weight:400;font-size:20px;color:var(--muted)}
 
+.cycle{display:grid;grid-template-columns:440px 1fr;gap:48px;align-items:center}
+.cycle svg{width:440px;height:440px}
+.cycle ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:20px}
+.cycle li{font-size:22px;line-height:1.4;color:var(--muted)}
+.cycle li b{display:block;color:var(--fg);font-size:24px}
 ol.road{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:20px;counter-reset:r}
 ol.road li{counter-increment:r;border-top:4px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:10px}
 ol.road li::before{content:counter(r,decimal-leading-zero);font-family:var(--label);font-size:28px;color:var(--sauce)}
@@ -375,6 +380,30 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
         <p style="color:var(--fg)">A demo tem flashes e tremor de tela. A tecla <b>0</b> desliga tudo na hora.</p>
       </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ciclo de correção: ms de resposta, antes de Celeste -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">GAME FEEL E PERCEPÇÃO HUMANA</p>
+    <h2>O ciclo de correção</h2>
+    <div class="cycle">
+      <svg viewBox="0 0 440 440" role="img" aria-label="Ciclo de correção de 240 milissegundos: perceber 100, pensar 70, agir 70">
+        <circle cx="220" cy="220" r="170" fill="none" stroke="#3a2e5c" stroke-width="34"/>
+        <!-- 100/240 = 150°, 70/240 = 105° -->
+        <path d="M220 50 A170 170 0 0 1 367.2 305" fill="none" stroke="#ff5a36" stroke-width="34"/>
+        <path d="M361.4 314.4 A170 170 0 0 1 128.7 363.3" fill="none" stroke="#ffc94a" stroke-width="34"/>
+        <path d="M120 357.6 A170 170 0 0 1 214 50.1" fill="none" stroke="#8fdc72" stroke-width="34"/>
+        <text x="220" y="212" text-anchor="middle" fill="#f4ede0" font-family="KMini, monospace" font-size="64">240</text>
+        <text x="220" y="256" text-anchor="middle" fill="#a89cc8" font-family="KPixel, monospace" font-size="30">ms por ciclo</text>
+      </svg>
+      <ul>
+        <li><b><span class="sauce">Perceber</span> ~100 ms</b>Processador perceptivo (50–200 ms)</li>
+        <li><b><span class="mustard">Pensar</span> ~70 ms</b>Processador cognitivo (30–100 ms)</li>
+        <li><b><span style="color:var(--zombie)">Agir</span> ~70 ms</b>Processador motor (25–170 ms)</li>
+        <li style="color:var(--fg)">O jogo precisa responder em até <em>~100 ms</em>, o tempo todo, senão a sensação de controle quebra. Os truques de Celeste que vêm agora trabalham justamente nessa janela.</li>
+        <li class="src">Modelo do Processador Humano (Card, Moran e Newell), citado pelo Swink no cap. 2</li>
+      </ul>
     </div>
   </section>
 
