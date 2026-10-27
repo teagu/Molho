@@ -178,7 +178,9 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
 #chrome button{pointer-events:auto;font-family:var(--label);font-size:22px;line-height:1;padding:3px 10px 6px;border:2px solid var(--line);background:var(--ink);color:var(--fg);cursor:pointer}
 #chrome button:hover{border-color:var(--fg)}
 #chrome button:focus-visible{outline:2px solid var(--mustard)}
-#help{font-family:var(--label);font-size:19px;color:var(--muted)}
+#chrome button[hidden]{display:none}
+#chrome button.off{color:var(--muted)}
+#chrome button.on{border-color:var(--zombie);color:var(--zombie)}
 #start{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(22,17,42,.55);cursor:pointer;border:0;color:var(--fg);font-family:var(--label);font-size:28px}
 #start span{background:var(--ink);border:3px solid var(--mustard);padding:14px 22px 18px;box-shadow:6px 6px 0 #0b0818}
 #start[hidden]{display:none}
@@ -204,7 +206,6 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
     </div>
     <div class="who">
       <b>Thiago Cortez</b>
-      <span>5 truques de controle de Celeste e 17 técnicas de juice</span>
     </div>
   </section>
 
@@ -482,7 +483,7 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
     <div class="wrap">
       <p class="eyebrow">SECOMP · UFAL</p>
       <h1>Obrigado!</h1>
-      <p class="lead" style="font-size:30px"><b>Thiago Cortez</b> · Agora vai lá colocar molho no seu jogo.</p>
+      <p class="lead" style="font-size:30px">Agora vai lá colocar molho no seu jogo.</p>
     </div>
     <figure class="qr">
       <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAbwAAAG8AQAAAACNyy1yAAABv0lEQVR42u2cQQ6DQAhFSS/g/W/pDWx0RoZPXbkoLN7ENGp8m+aFwoC1493aDRAQEBAQEBAQEPBvoPnarpvXMc7Pz/TACX7s5QIEfLmmq9vhJ+Pm0HJcjhN5ElcB61yNTnp09dCapcVVwAau+vlpqRmuAnZ2Na6ZEuAqYL981f0cxVcSGFcBi10NZf7zwT4AYA9X049+rK0en8FVwDJXh5m2yii/KdL6Ri6uApbWVrE1sLZYb29nsMVVwAZxdVqq4fSxwsJVwMJ8dVX6dwHlwXY1XtkHAGyQA6RiSvapVvlPDgBY7arUTRbtXQltTANwFbBBXM3V1m6S0OIqYA9X4yZAjrRGjxWwS20179xZa6qwZEoWVwHr8lWZXPUQejcIZEgAVwGrayuPq/F3Xy7JAQA7uKpDVh5dvf2Kq4B9cgDRdZc261KXHACwurZKw9WrzWryeiCuAtbH1Rg541bAbrkRgKuATd5j3Q6ZAQivXYdpFr5VwDJXZ2q66UZrXMwEAnZz9ScZiMPYuArYx1WZXw39VnWYbxWwQb5q8qcWaUoQVwEb7QPoYFUaDyAHAKx1lT+mAwQEBAQEBAQEbAl+AfmZoEFtyZNJAAAAAElFTkSuQmCC" alt="QR code para teagu.github.io/Molho">
@@ -492,7 +493,12 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
 
   <div id="chrome">
     <span id="count">1 / 1</span>
-    <span id="help">← → slides · T antes/depois · 0 sem molho · M som · F tela cheia</span>
+    <button id="bTech" type="button" hidden>TÉCNICA: LIGADA</button>
+    <button id="bAll" type="button" hidden>MOLHO: LIGADO</button>
+    <button id="bBox" type="button" hidden>HITBOX</button>
+    <button id="bFloor" type="button" hidden>LIMPAR CHÃO</button>
+    <button id="bSound" type="button">SOM: LIGADO</button>
+    <button id="bFull" type="button">TELA CHEIA</button>
     <button id="prev" type="button" aria-label="Slide anterior">‹</button>
     <button id="next" type="button" aria-label="Próximo slide">›</button>
   </div>
@@ -800,7 +806,7 @@ const BASE_CTRL_CODE = "<span class=\"k\">if</span> (<span class=\"t\">Input</sp
     BASE_CTRL_CODE, 'A D andar · W ou K pular · H hitbox · sem input por 3 s = bot')));
   CTRL.forEach((t, i) => frag.appendChild(sec({ level: String(i + 1), set: 'ctrl', scen: t.id }, body(
     `TRUQUE ${nn(i + 1)} / ${CTRL.length} · ${t.src.toUpperCase()}`, t.title, t.desc, t.why, t.code,
-    'T compara antes × depois · 0 desliga todos os truques · A D W para jogar'))));
+    'A D W para jogar · clique nos chips para comparar'))));
   document.getElementById('ctrlSlides').replaceWith(frag);
   // parte 2: juice
   frag = document.createDocumentFragment();
@@ -810,7 +816,7 @@ const BASE_CTRL_CODE = "<span class=\"k\">if</span> (<span class=\"t\">Input</sp
     BASE_JUICE_CODE, 'W A S D andar · mouse mirar e atirar · sem input por 3 s = piloto automático')));
   TECH.forEach((t, i) => frag.appendChild(sec({ level: String(i + 1) }, body(
     `TÉCNICA ${nn(i + 1)} / ${TECH.length} · ${t.src.toUpperCase()}`, t.title, t.desc, t.why, t.code,
-    'T compara antes × depois · 0 desliga todo o molho · clique nos chips'))));
+    'clique nos chips para comparar'))));
   document.getElementById('techSlides').replaceWith(frag);
 })();
 
@@ -879,6 +885,7 @@ function recomputeJuice(){
     badge.classList.toggle('on', STATE.allOff || (STATE.mode !== 'bg' && !curList().some(t => itemOn[t.id])));
   }
   renderChips();
+  syncTools();
 }
 const CHIPS = { juice: document.getElementById('chips'), ctrl: document.getElementById('chips2') };
 for (const [set, list] of Object.entries(LISTS)) if (CHIPS[set]) list.forEach(t => {
@@ -1560,10 +1567,10 @@ class Plat extends Phaser.Scene {
     this.dust = this.add.particles(0, 0, 'puff', { emitting: false, speed: { min: 8, max: 30 }, lifespan: { min: 180, max: 320 }, scale: { start: 0.25, end: 0.6 }, alpha: { start: 0.5, end: 0 }, tint: 0xc9c0dd }).setDepth(19);
     this.hud = this.add.text(6, 10, '', { fontFamily: 'KPixel', fontSize: '16px', color: '#f4ede0', stroke: '#16112a', strokeThickness: 4 }).setDepth(50).setScrollFactor(0);
     this.keys = this.input.keyboard.addKeys('A,D,W,K,J,UP,LEFT,H');
-    this.lastInput = -1e9; this.showBox = true;
+    this.lastInput = -1e9; this.showBox = true; syncTools();
     this.input.keyboard.on('keydown', e => {
       if ('adwkjADWKJ'.includes(e.key) || e.key === 'ArrowUp') { if (this.time.now - this.lastInput > 3000) this.restart(); this.lastInput = this.time.now; }
-      if (e.key === 'h' || e.key === 'H') this.showBox = !this.showBox;
+      if (e.key === 'h' || e.key === 'H') act.box();
     });
     this.cameras.main.setScroll(0, 6);
     this.texts = [];
@@ -1730,6 +1737,40 @@ abBtn.addEventListener('click', () => { abSync(STATE.allOff); recomputeJuice(); 
 document.getElementById('prev').addEventListener('click', () => go(cur - 1));
 document.getElementById('next').addEventListener('click', () => go(cur + 1));
 
+// ações do rodapé (também nas teclas T, 0, H, R, M, F)
+const act = {
+  tech(){
+    if (STATE.mode === 'panel' && STATE.level > 0) { const id = curList()[STATE.level - 1].id; STATE.overrides[id] = !itemOn[id]; STATE.allOff = false; recomputeJuice(); }
+    else if (STATE.mode === 'center') { abSync(STATE.allOff); recomputeJuice(); }
+  },
+  all(){
+    if (STATE.mode === 'center') abSync(STATE.allOff); else STATE.allOff = !STATE.allOff;
+    recomputeJuice();
+  },
+  box(){ if (window.PLAT) { PLAT.showBox = !PLAT.showBox; syncTools(); } },
+  floor(){ if (window.ARENA) ARENA.clearFloor(); },
+  sound(){ SFX.muted = !SFX.muted; syncTools(); },
+  full(){ try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}); } catch (_) {} },
+};
+const tools = { tech: 'bTech', all: 'bAll', box: 'bBox', floor: 'bFloor', sound: 'bSound', full: 'bFull' };
+for (const [k, id] of Object.entries(tools)) {
+  const b = document.getElementById(id); tools[k] = b;
+  b.addEventListener('click', () => { SFX.init(); act[k](); b.blur(); });
+}
+function syncTools(){
+  const game = STATE.mode !== 'off', plat = game && !!STATE.scen, panel = STATE.mode === 'panel';
+  const word = STATE.set === 'ctrl' ? 'TRUQUES' : 'MOLHO';
+  const set = (b, show, on, txt) => { b.hidden = !show; if (txt) b.textContent = txt; b.classList.toggle('on', !!on); b.classList.toggle('off', !on); };
+  const t = panel && STATE.level > 0 ? curList()[STATE.level - 1] : null;
+  set(tools.tech, !!t, t && itemOn[t.id], t && (STATE.set === 'ctrl' ? 'TRUQUE: ' + (itemOn[t.id] ? 'LIGADO' : 'DESLIGADO') : 'TÉCNICA: ' + (itemOn[t.id] ? 'LIGADA' : 'DESLIGADA')));
+  set(tools.all, panel, !STATE.allOff, word + (STATE.allOff ? ': DESLIGADO' : ': LIGADO'));
+  set(tools.box, plat, window.PLAT && PLAT.showBox);
+  set(tools.floor, game && !plat && STATE.mode !== 'bg', true);
+  set(tools.sound, true, !SFX.muted, SFX.muted ? 'SOM: DESLIGADO' : 'SOM: LIGADO');
+  tools.floor.classList.remove('on', 'off'); tools.full.classList.remove('on', 'off');
+}
+document.addEventListener('fullscreenchange', () => { tools.full.textContent = document.fullscreenElement ? 'SAIR DA TELA CHEIA' : 'TELA CHEIA'; });
+
 window.addEventListener('keydown', (e) => {
   SFX.init();
   if (e.target && e.target.closest && e.target.closest('input,textarea')) return;
@@ -1738,19 +1779,11 @@ window.addEventListener('keydown', (e) => {
   else if (['ArrowLeft', 'PageUp', 'Backspace'].includes(k)) { e.preventDefault(); go(cur - 1); }
   else if (k === 'Home') go(0);
   else if (k === 'End') go(slides.length - 1);
-  else if (k === 'f' || k === 'F') {
-    try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}); } catch (_) {}
-  }
-  else if (k === 'm' || k === 'M') SFX.muted = !SFX.muted;
-  else if ((k === 'r' || k === 'R') && window.ARENA) ARENA.clearFloor();
-  else if (k === 't' || k === 'T') {
-    if (STATE.mode === 'panel' && STATE.level > 0) { const id = curList()[STATE.level - 1].id; STATE.overrides[id] = !itemOn[id]; STATE.allOff = false; recomputeJuice(); }
-    else if (STATE.mode === 'center') { abSync(STATE.allOff); recomputeJuice(); }
-  }
-  else if (k === '0') {
-    if (STATE.mode === 'center') abSync(STATE.allOff); else STATE.allOff = !STATE.allOff;
-    recomputeJuice();
-  }
+  else if (k === 'f' || k === 'F') act.full();
+  else if (k === 'm' || k === 'M') act.sound();
+  else if (k === 'r' || k === 'R') act.floor();
+  else if (k === 't' || k === 'T') act.tech();
+  else if (k === '0') act.all();
 });
 // toque: deslizar troca slide
 let tx0 = null;

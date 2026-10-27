@@ -35,6 +35,8 @@ Ou abra `index.html` localmente num navegador (precisa de internet na primeira v
 | A D + W/K | Joga o plataforma |
 | WASD + mouse | Joga o shooter |
 
+Os mesmos controles ficam como botões no rodapé, e cada um aparece só nos slides onde faz sentido (técnica e molho nos slides com jogo, hitbox no plataforma, limpar chão no shooter, som e tela cheia sempre).
+
 Sem input por 3 segundos, um piloto automático assume.
 
 O guia do palestrante, com a explicação de cada slide, está em [`docs/guia-do-palestrante.md`](docs/guia-do-palestrante.md).
