@@ -250,13 +250,13 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
   <!-- 2. roteiro -->
   <section class="slide" data-game="off">
     <p class="eyebrow">ROTEIRO</p>
-    <h2>Do que vamos falar</h2>
+    <h2>Do que vou falar</h2>
     <ol class="road">
       <li><b>O que é game feel</b><span>A definição de Steve Swink: controle em tempo real, espaço simulado e juice.</span></li>
       <li><b>Onde mexer</b><span>As seis peças que o designer pode mexer e os 7 princípios de Swink.</span></li>
       <li><b>Controles</b><span>Os perdões invisíveis de Celeste: coyote time, jump buffer, correção de quina e mais.</span></li>
       <li><b>Juice</b><span>O que duas palestras clássicas ensinaram: <i>Juice it or lose it</i> e <i>The Art of Screenshake</i>.</span></li>
-      <li><b>Exemplo real</b><span>Juice aplicado num jogo de verdade: abrimos o Harpooner e olhamos as mesmas técnicas.</span></li>
+      <li><b>Exemplo real</b><span>Juice aplicado num jogo de verdade: abro o Harpooner e olho as mesmas técnicas.</span></li>
     </ol>
   </section>
 
@@ -280,7 +280,7 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
       <div class="card"><h3>Input</h3><p>O dispositivo físico: teclado, mouse, controle. Como a intenção sai da mão.</p></div>
       <div class="card"><h3>Resposta</h3><p>Como o jogo processa e modula o input em tempo real: aceleração, pulo, mira.</p></div>
       <div class="card"><h3>Contexto</h3><p>Espaço simulado e level design que dão sentido ao controle.</p></div>
-      <div class="card"><h3>Juice</h3><p>Efeitos que reforçam artificialmente a impressão de uma realidade física. Swink chama de <i>polish</i>. É o nosso molho.</p></div>
+      <div class="card"><h3>Juice</h3><p>Efeitos que reforçam artificialmente a impressão de uma realidade física. Swink chama de <i>polish</i>. É o molho do título.</p></div>
       <div class="card"><h3>Metáfora</h3><p>A representação muda expectativas: um tanque e uma bola de papel não podem mover-se igual.</p></div>
       <div class="card"><h3>Regras</h3><p>Variáveis abstratas (vida, dano, pontos) mudam como percebemos os objetos.</p></div>
     </div>
@@ -323,7 +323,7 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
     <h2>Pequenos ajustes, outro jogo</h2>
     <div class="split">
       <div style="display:flex;flex-direction:column;gap:26px">
-        <p class="lead">Nenhuma técnica sozinha resolve. O que muda a sensação é <em>empilhar</em> dezenas de ajustes pequenos e baratos. A maioria é efeito puro; alguns mexem um pouco nas regras, e vamos avisar quando isso acontecer.</p>
+        <p class="lead">Nenhuma técnica sozinha resolve. O que muda a sensação é <em>empilhar</em> dezenas de ajustes pequenos e baratos. A maioria é efeito puro; alguns mexem um pouco nas regras, e vou avisar quando isso acontecer.</p>
         <p class="lead muted" style="font-size:22px">Hoje: primeiro 5 truques de controle de Celeste num jogo de plataforma, depois 17 técnicas de juice num shooter. A demo roda no navegador com <em>Phaser 3</em>; os trechos de código estão em <em>C# no estilo Unity</em>.</p>
       </div>
       <div class="card">
@@ -384,7 +384,7 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
         <span class="tag">COMO A DEMO FUNCIONA</span>
         <h3>Um bot com timing humano</h3>
         <p>Ele aperta o pulo um pouco atrasado, um pouco adiantado, um pouco desalinhado. Sem o truque, ele falha. Com o truque, passa.</p>
-        <p>As constantes vêm do <code>Player.cs</code> de Celeste, publicado por Noel Berry no GitHub, multiplicadas por 1,6 para a nossa escala: os tiles daqui têm 16 px contra 8 de Celeste, mas o personagem é só ~1,3× maior. O 1,6 deixou o pulo proporcional ao boneco.</p>
+        <p>As constantes vêm do <code>Player.cs</code> de Celeste, publicado por Noel Berry no GitHub, multiplicadas por 1,6 para a minha escala: os tiles daqui têm 16 px contra 8 de Celeste, mas o personagem é só ~1,3× maior. O 1,6 deixou o pulo proporcional ao boneco.</p>
       </div>
     </div>
   </section>
@@ -783,7 +783,7 @@ const CTRL = [
   "chip": "correção de quina",
   "title": "Correção de quina",
   "src": "Celeste · UpwardCornerCorrection = 4",
-  "desc": "Se a cabeça bate na quina de um teto, o jogo empurra o personagem para o lado até ele passar: 4 px em Celeste, 6 px na nossa escala.",
+  "desc": "Se a cabeça bate na quina de um teto, o jogo empurra o personagem para o lado até ele passar: 4 px em Celeste, 6 px na minha escala.",
   "why": "O bot pula 3 px desalinhado do buraco. Ninguém percebe 3 px, mas todo mundo percebe a cabeçada. A hitbox desenhada mostra o deslocamento.",
   "code": "<span class=\"c\">// colidiu subindo?</span>\n<span class=\"k\">for</span> (<span class=\"k\">int</span> i = <span class=\"n\">1</span>; i &lt;= <span class=\"n\">4</span>; i++) {\n  <span class=\"k\">var</span> teste = pos + <span class=\"k\">new</span> <span class=\"t\">Vector2</span>(i * dir, <span class=\"n\">1</span>);\n  <span class=\"k\">if</span> (!Colide(teste)) {\n    pos.x += i * dir;  <span class=\"c\">// passa pela quina</span>\n    break;\n  }\n}"
  },
@@ -809,7 +809,7 @@ const CTRL = [
   "src": "Celeste · HalfGravThreshold = 40",
   "desc": "Se você segura o pulo, o topo do pulo tem metade da gravidade. Os pontos amarelos no rastro mostram onde isso acontece.",
   "why": "Mais tempo no ar para corrigir a trajetória, e o pulo ganha uma “flutuada” que parece intencional. Aqui é a diferença entre cair por 1 px e chegar.",
-  "code": "<span class=\"c\">// 40 em Celeste, 64 na nossa escala</span>\n<span class=\"k\">bool</span> meia = <span class=\"t\">Mathf</span>.Abs(vel.y) &lt; <span class=\"n\">40f</span>\n         &amp;&amp; <span class=\"t\">Input</span>.GetButton(<span class=\"s\">\"Jump\"</span>);\n<span class=\"k\">float</span> g = GRAV * (meia ? <span class=\"n\">0.5f</span> : <span class=\"n\">1f</span>);\nvel.y -= g * <span class=\"t\">Time</span>.deltaTime;"
+  "code": "<span class=\"c\">// 40 em Celeste, 64 na minha escala</span>\n<span class=\"k\">bool</span> meia = <span class=\"t\">Mathf</span>.Abs(vel.y) &lt; <span class=\"n\">40f</span>\n         &amp;&amp; <span class=\"t\">Input</span>.GetButton(<span class=\"s\">\"Jump\"</span>);\n<span class=\"k\">float</span> g = GRAV * (meia ? <span class=\"n\">0.5f</span> : <span class=\"n\">1f</span>);\nvel.y -= g * <span class=\"t\">Time</span>.deltaTime;"
  }
 ];
 const PECAS = [];
