@@ -89,6 +89,10 @@ em{font-style:normal;color:var(--mustard)}
 .card.hot{border-color:var(--sauce);box-shadow:6px 6px 0 rgba(255,90,54,.25)}
 .card.hot h3{color:var(--sauce)}
 /* quem fala */
+.s-real .real{display:grid;grid-template-columns:640px 1fr;gap:44px;align-items:center;margin-top:8px}
+.s-real img{width:640px;height:299px;object-fit:cover;display:block;border:3px solid var(--line);box-shadow:8px 8px 0 #0b0818}
+.s-real .txt{display:flex;flex-direction:column;gap:24px}
+.s-real a{color:var(--mustard);text-decoration:none;border-bottom:2px solid currentColor;font-family:var(--label);font-size:24px;align-self:flex-start}
 .s-me h2{margin-bottom:10px}
 .s-me .cargo{font-family:var(--label);font-size:28px;color:var(--mustard);margin:0 0 28px}
 .s-me .me{display:grid;grid-template-columns:330px 1fr;gap:48px;align-items:start;margin-top:8px}
@@ -252,7 +256,7 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
       <li><b>Onde mexer</b><span>As seis peças que o designer pode mexer e os 7 princípios de Swink.</span></li>
       <li><b>Controles</b><span>Os perdões invisíveis de Celeste: coyote time, jump buffer, correção de quina e mais.</span></li>
       <li><b>Juice</b><span>O que duas palestras clássicas ensinaram: <i>Juice it or lose it</i> e <i>The Art of Screenshake</i>.</span></li>
-      <li><b>Mão na massa</b><span>Um shooter sem graça nenhuma. A cada slide, uma técnica nova até ele ficar suculento.</span></li>
+      <li><b>Exemplo real</b><span>Juice aplicado num jogo publicado: abrimos o Harpooner e olhamos as mesmas técnicas.</span></li>
     </ol>
   </section>
 
@@ -430,6 +434,20 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
     <p class="eyebrow" style="text-align:center">TODAS AS 17 TÉCNICAS</p>
     <h2>Antes × depois</h2>
     <button class="toggle" id="abBtn" type="button">MOLHO: LIGADO</button>
+  </section>
+
+  <!-- exemplo real -->
+  <section class="slide s-real" data-game="off">
+    <p class="eyebrow">EXEMPLO REAL</p>
+    <h2>Juice num jogo de verdade</h2>
+    <div class="real">
+      <img src="data:image/jpeg;base64,{{IMG_HARPOONER}}" alt="Capa do Harpooner">
+      <div class="txt">
+        <p class="lead">Saindo da demo: as mesmas técnicas num jogo publicado na Steam.</p>
+        <p class="lead muted" style="font-size:22px">Repare em quantas acontecem ao mesmo tempo em cada ação, e em quais você nem percebe até elas faltarem.</p>
+        <a href="https://store.steampowered.com/app/4259930/Harpooner/" target="_blank" rel="noopener">Harpooner na Steam</a>
+      </div>
+    </div>
   </section>
 
   <!-- cuidado -->
