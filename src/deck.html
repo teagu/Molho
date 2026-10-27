@@ -1,0 +1,1601 @@
+<title>Game Feel: Adicionando o molho nos seus jogos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: palco 16:9 fixo (1280×720) escalado para a janela; o jogo Phaser é uma "doca" que muda de lugar conforme o slide. */
+@font-face{font-family:"KMini";src:url(data:font/ttf;base64,{{FONT_MINI}}) format("truetype");font-display:block}
+@font-face{font-family:"KPixel";src:url(data:font/ttf;base64,{{FONT_PIXEL}}) format("truetype");font-display:block}
+:root{
+  --ink:#16112a;      /* fundo: asfalto à noite */
+  --panel:#211936;
+  --line:#3a2e5c;
+  --fg:#f4ede0;       /* papel quente */
+  --muted:#a89cc8;
+  --sauce:#ff5a36;    /* molho de tomate: acento */
+  --mustard:#ffc94a;  /* mostarda: secundário */
+  --zombie:#8fdc72;   /* estado "ligado" */
+  --display:"KMini","Courier New",monospace;
+  --label:"KPixel","Courier New",monospace;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--ink);color:var(--fg);font-family:var(--body);overflow:hidden;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0;box-sizing:border-box}
+#viewport{position:relative;width:100%;height:100%;display:grid;place-items:center;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:0 0;background:var(--ink);overflow:hidden;
+  box-shadow:0 0 0 1px var(--line)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- doca do jogo ---------- */
+#dock{position:absolute;z-index:1;left:0;top:0;width:1280px;height:720px;transition:left .6s cubic-bezier(.2,.8,.2,1),top .6s cubic-bezier(.2,.8,.2,1),width .6s cubic-bezier(.2,.8,.2,1),height .6s cubic-bezier(.2,.8,.2,1),opacity .4s}
+#game{position:absolute;inset:0;background:#000;overflow:hidden}
+#game canvas{width:100%!important;height:100%!important;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+#hurt{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,40,30,.75) 100%);transition:opacity .35s}
+#hurt.on{opacity:1;transition:none}
+#dock.g-off{opacity:0;pointer-events:none}
+#dock.g-bg{left:0;top:0;width:1280px;height:720px}
+#dock.g-panel{left:500px;top:146px;width:736px;height:414px}
+#dock.g-center{left:248px;top:150px;width:784px;height:441px}
+#dock.g-panel #game,#dock.g-center #game{outline:3px solid var(--line);outline-offset:0;box-shadow:8px 8px 0 #0b0818}
+#badge{position:absolute;right:10px;top:10px;font-family:var(--label);font-size:22px;line-height:1;padding:6px 10px 8px;background:var(--sauce);color:#1b0f0a;display:none}
+#badge.on{display:block}
+#auto{position:absolute;left:10px;bottom:10px;font-family:var(--label);font-size:20px;line-height:1;padding:5px 9px 7px;background:rgba(22,17,42,.82);color:var(--mustard);display:none}
+#dock.g-panel #auto.on,#dock.g-center #auto.on{display:block}
+#chips,#chips2{position:absolute;left:0;right:0;top:calc(100% + 14px);display:none;flex-wrap:wrap;gap:6px}
+#dock.g-panel.set-juice #chips{display:flex}#dock.g-panel.set-ctrl #chips2{display:flex}
+.chip{font-family:var(--label);font-size:19px;line-height:1;padding:5px 8px 7px;border:2px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;pointer-events:auto}
+.chip.on{border-color:var(--zombie);color:var(--zombie);background:rgba(143,220,114,.08)}
+.chip.cur{border-color:var(--mustard);color:var(--ink);background:var(--mustard)}
+.chip.cur.off{background:transparent;color:var(--mustard)}
+.chip:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+
+/* ---------- slides ---------- */
+.slide{position:absolute;inset:0;z-index:2;opacity:0;visibility:hidden;transform:translateY(14px);transition:opacity .35s,transform .45s cubic-bezier(.2,.8,.2,1),visibility 0s .45s;pointer-events:none;
+  padding:52px 56px 70px;box-sizing:border-box}
+.slide.active{opacity:1;visibility:visible;transform:none;transition:opacity .35s,transform .45s cubic-bezier(.2,.8,.2,1),visibility 0s}
+.slide a,.slide button{pointer-events:auto}
+.eyebrow{font-family:var(--label);font-size:24px;letter-spacing:.04em;color:var(--sauce);line-height:1;margin:0 0 14px}
+h1,h2{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;line-height:1.02;letter-spacing:.01em}
+h2{font-size:52px;margin-bottom:28px}
+p{margin:0}
+.lead{font-size:26px;line-height:1.45;max-width:30em;color:var(--fg)}
+.muted{color:var(--muted)}
+.sauce{color:var(--sauce)} .mustard{color:var(--mustard)}
+em{font-style:normal;color:var(--mustard)}
+.src{font-family:var(--label);font-size:20px;color:var(--muted);letter-spacing:.03em}
+
+/* capa */
+.s-title{background:linear-gradient(90deg,rgba(22,17,42,.96) 0%,rgba(22,17,42,.88) 42%,rgba(22,17,42,.25) 75%,rgba(22,17,42,.05) 100%)}
+.s-title .wrap{position:absolute;left:64px;top:96px;width:600px;display:flex;flex-direction:column;gap:22px}
+.s-title h1{font-size:118px;line-height:.9}
+.s-title h1 span{display:block;color:var(--sauce)}
+.s-title .sub{font-size:32px;line-height:1.25;font-weight:700;max-width:16em}
+.s-title .who{position:absolute;left:64px;bottom:64px;display:flex;flex-direction:column;gap:6px}
+.s-title .who b{font-family:var(--display);font-weight:400;font-size:34px}
+.s-title .who span{font-family:var(--label);font-size:26px;color:var(--mustard)}
+.press{font-family:var(--label);font-size:22px;color:var(--muted)}
+
+/* grades genéricas */
+.cols{display:grid;gap:28px}
+.c2{grid-template-columns:1fr 1fr}.c3{grid-template-columns:repeat(3,1fr)}
+.card{border:2px solid var(--line);background:var(--panel);padding:22px 24px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h3{font-family:var(--display);font-weight:400;font-size:30px;margin:0;line-height:1.05}
+.card code{font-family:var(--mono);font-size:.9em;color:var(--mustard)}
+.card p{font-size:21px;line-height:1.4;color:var(--muted)}
+.card.hot{border-color:var(--sauce);box-shadow:6px 6px 0 rgba(255,90,54,.25)}
+.card.hot h3{color:var(--sauce)}
+.tag{font-family:var(--label);font-size:20px;line-height:1;color:var(--mustard)}
+blockquote{margin:0;border-left:6px solid var(--sauce);padding:6px 0 6px 26px;font-size:34px;line-height:1.3;font-weight:700;max-width:28em;text-wrap:balance}
+blockquote cite{display:block;margin-top:14px;font-style:normal;font-weight:400;font-size:20px;color:var(--muted)}
+
+ol.road{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:20px;counter-reset:r}
+ol.road li{counter-increment:r;border-top:4px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:10px}
+ol.road li::before{content:counter(r,decimal-leading-zero);font-family:var(--label);font-size:28px;color:var(--sauce)}
+ol.road li b{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.05}
+ol.road li span{font-size:19px;line-height:1.4;color:var(--muted)}
+
+.cycle{display:grid;grid-template-columns:440px 1fr;gap:48px;align-items:center}
+.cycle svg{width:440px;height:440px}
+.cycle ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:20px}
+.cycle li{font-size:22px;line-height:1.4;color:var(--muted)}
+.cycle li b{display:block;color:var(--fg);font-size:24px}
+
+.six{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.six .card{padding:18px 20px}
+.six .card h3{font-size:28px}
+.six .card p{font-size:19px}
+
+.prin{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:14px 40px}
+.prin li{display:grid;grid-template-columns:28px 1fr;gap:12px;font-size:22px;line-height:1.38;color:var(--muted)}
+.prin li::before{content:"";width:14px;height:14px;margin-top:6px;background:var(--line)}
+.prin li.hot::before{background:var(--sauce)}
+.prin li b{color:var(--fg)}
+
+.split{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:start}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.list li{font-size:22px;line-height:1.4;padding-left:26px;position:relative;color:var(--fg)}
+.list li::before{content:"";position:absolute;left:0;top:11px;width:12px;height:12px;background:var(--sauce)}
+.list li span{color:var(--muted)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:8px 20px;align-items:center;font-size:21px}
+kbd{font-family:var(--label);font-size:22px;line-height:1;padding:6px 10px 8px;border:2px solid var(--fg);border-bottom-width:5px;color:var(--fg);justify-self:start;white-space:nowrap}
+
+/* slide de técnica */
+.s-game h2{font-size:46px;margin-bottom:0}
+.s-game .head{position:absolute;left:56px;top:34px;right:56px}
+.s-game .left{position:absolute;left:56px;top:150px;width:410px;display:flex;flex-direction:column;gap:18px}
+.s-game .desc{font-size:21px;line-height:1.45}
+.s-game .why{font-size:18px;line-height:1.45;color:var(--muted);border-left:4px solid var(--mustard);padding-left:14px}
+pre.code{margin:0;font-family:var(--mono);font-size:13.5px;line-height:1.55;background:#0e0b1c;border:2px solid var(--line);padding:14px 16px;overflow-x:auto;color:#e6defa;white-space:pre}
+pre.code .c{color:#7f74a3}.code .t{color:#c3a6ff}.code .t{color:#c3a6ff}.code .n{color:var(--mustard)}.code .k{color:var(--sauce)}.code .s{color:var(--zombie)}
+.s-game .hint{position:absolute;left:500px;bottom:34px;font-family:var(--label);font-size:19px;color:var(--muted)}
+
+.s-ab .toggle{position:absolute;left:50%;transform:translateX(-50%);bottom:40px;font-family:var(--display);font-size:30px;padding:12px 26px 14px;border:3px solid var(--sauce);background:var(--sauce);color:#1b0f0a;cursor:pointer;box-shadow:6px 6px 0 #0b0818}
+.s-ab .toggle.off{background:transparent;color:var(--sauce)}
+.s-ab h2{text-align:center;margin-bottom:0;font-size:46px}
+
+.refs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:16px}
+.refs li{font-size:20px;line-height:1.4;color:var(--muted)}
+.refs li b{color:var(--fg)}
+.refs a{color:var(--mustard);text-decoration:none;border-bottom:2px solid currentColor}
+.refs a:focus-visible{outline:2px solid var(--fg)}
+
+.s-end{background:linear-gradient(0deg,rgba(22,17,42,.95) 0%,rgba(22,17,42,.75) 40%,rgba(22,17,42,.1) 100%)}
+.s-end .wrap{position:absolute;left:64px;bottom:72px;right:64px;display:flex;flex-direction:column;gap:14px}
+.s-end h1{font-size:110px;color:var(--sauce)}
+
+.cite-foot{position:absolute;left:56px;right:56px;bottom:58px;font-family:var(--label);font-size:20px;line-height:1.3;color:var(--muted)}
+.gloss{position:absolute;left:56px;right:56px;bottom:104px;font-size:18px;line-height:1.5;color:var(--muted);border-top:2px solid var(--line);padding-top:14px}
+.gloss b{color:var(--fg)}
+.gloss code{font-family:var(--mono);font-size:.9em;color:var(--mustard)}
+.cite-foot i{font-style:normal;color:var(--fg)}
+ol.steps{margin:0;padding:0;list-style:none;counter-reset:st;display:flex;flex-direction:column;gap:12px}
+ol.steps li{counter-increment:st;display:grid;grid-template-columns:36px 1fr;gap:10px;font-size:21px;line-height:1.35}
+ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;color:var(--sauce);line-height:1}
+.blob-wrap{margin-top:22px;display:flex;flex-direction:column;gap:12px}
+#blobCanvas{width:1168px;height:256px;image-rendering:pixelated;display:block;max-width:100%}
+.blob-cap{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.blob-cap div{display:flex;flex-direction:column;gap:4px}
+.blob-cap b{font-family:var(--display);font-weight:400;font-size:28px}
+.blob-cap span{font-size:20px;color:var(--muted)}
+/* ---------- rodapé / navegação ---------- */
+#chrome{position:absolute;z-index:5;left:0;right:0;bottom:0;height:40px;display:flex;align-items:center;gap:14px;padding:0 20px 0 56px;pointer-events:none}
+#progress{position:absolute;left:0;bottom:0;height:4px;background:var(--sauce);transition:width .4s}
+#count{font-family:var(--label);font-size:20px;color:var(--muted);margin-right:auto}
+#chrome button{pointer-events:auto;font-family:var(--label);font-size:22px;line-height:1;padding:3px 10px 6px;border:2px solid var(--line);background:var(--ink);color:var(--fg);cursor:pointer}
+#chrome button:hover{border-color:var(--fg)}
+#chrome button:focus-visible{outline:2px solid var(--mustard)}
+#help{font-family:var(--label);font-size:19px;color:var(--muted)}
+#start{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(22,17,42,.55);cursor:pointer;border:0;color:var(--fg);font-family:var(--label);font-size:28px}
+#start span{background:var(--ink);border:3px solid var(--mustard);padding:14px 22px 18px;box-shadow:6px 6px 0 #0b0818}
+#start[hidden]{display:none}
+</style>
+
+<div id="viewport">
+<div id="stage">
+  <div id="dock" class="g-bg">
+    <div id="game"></div>
+    <div id="hurt"></div>
+    <div id="badge">SEM MOLHO</div>
+    <div id="auto">DEMO AUTOMÁTICA · mexa o mouse ou WASD</div>
+    <div id="chips" role="group" aria-label="Técnicas de juice ligadas"></div>
+    <div id="chips2" role="group" aria-label="Truques de controle ligados"></div>
+  </div>
+
+  <!-- 1. capa -->
+  <section class="slide s-title" data-game="bg">
+    <div class="wrap">
+      <p class="eyebrow">SECOMP · UFAL</p>
+      <h1>Game<span>Feel</span></h1>
+      <p class="sub">Adicionando o molho nos seus jogos</p>
+    </div>
+    <div class="who">
+      <b>Thiago Cortez</b>
+      <span>5 truques de controle de Celeste e 17 técnicas de juice</span>
+    </div>
+  </section>
+
+  <!-- 2. roteiro -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">ROTEIRO</p>
+    <h2>Do que vamos falar</h2>
+    <ol class="road">
+      <li><b>O que é game feel</b><span>A definição de Steve Swink: controle em tempo real, espaço simulado e juice.</span></li>
+      <li><b>Por que sentimos</b><span>O ciclo de correção de ~240 ms e as seis peças que o designer pode mexer.</span></li>
+      <li><b>Controles</b><span>Os perdões invisíveis de Celeste: coyote time, jump buffer, correção de quina e mais.</span></li>
+      <li><b>Juice</b><span>O que duas palestras clássicas ensinaram: <i>Juice it or lose it</i> e <i>The Art of Screenshake</i>.</span></li>
+      <li><b>Mão na massa</b><span>Um shooter sem graça nenhuma. A cada slide, uma técnica nova até ele ficar suculento.</span></li>
+    </ol>
+  </section>
+
+  <!-- 3. definição -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">STEVE SWINK · GAME FEEL (2009)</p>
+    <h2>O que é game feel?</h2>
+    <blockquote>“Controle em tempo real de objetos virtuais em um espaço simulado, com interações enfatizadas por juice.”<cite>Swink, cap. 1, Defining Game Feel (tradução livre; no original, <i>polish</i>)</cite></blockquote>
+    <div class="cols c3" style="margin-top:40px">
+      <div class="card"><span class="tag">BLOCO 1</span><h3>Controle em tempo real</h3><p>O jogador age, o jogo responde, o jogador corrige. Sem pausa, sem turno.</p></div>
+      <div class="card"><span class="tag">BLOCO 2</span><h3>Espaço simulado</h3><p>Colisões, distâncias e obstáculos que dão sentido ao movimento.</p></div>
+      <div class="card hot"><span class="tag">BLOCO 3 · HOJE</span><h3>Juice</h3><p>Animações, sons, partículas e câmera que “vendem” a interação.</p></div>
+    </div>
+  </section>
+
+  <!-- 4. ciclo -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">GAME FEEL E PERCEPÇÃO HUMANA</p>
+    <h2>O ciclo de correção</h2>
+    <div class="cycle">
+      <svg viewBox="0 0 440 440" role="img" aria-label="Ciclo de correção de 240 milissegundos: perceber 100, pensar 70, agir 70">
+        <circle cx="220" cy="220" r="170" fill="none" stroke="#3a2e5c" stroke-width="34"/>
+        <!-- 100/240 = 150°, 70/240 = 105° -->
+        <path d="M220 50 A170 170 0 0 1 367.2 305" fill="none" stroke="#ff5a36" stroke-width="34"/>
+        <path d="M361.4 314.4 A170 170 0 0 1 128.7 363.3" fill="none" stroke="#ffc94a" stroke-width="34"/>
+        <path d="M120 357.6 A170 170 0 0 1 214 50.1" fill="none" stroke="#8fdc72" stroke-width="34"/>
+        <text x="220" y="212" text-anchor="middle" fill="#f4ede0" font-family="KMini, monospace" font-size="64">240</text>
+        <text x="220" y="256" text-anchor="middle" fill="#a89cc8" font-family="KPixel, monospace" font-size="30">ms por ciclo</text>
+      </svg>
+      <ul>
+        <li><b><span class="sauce">Perceber</span> ~100 ms</b>Processador perceptivo (50–200 ms)</li>
+        <li><b><span class="mustard">Pensar</span> ~70 ms</b>Processador cognitivo (30–100 ms)</li>
+        <li><b><span style="color:var(--zombie)">Agir</span> ~70 ms</b>Processador motor (25–170 ms)</li>
+        <li style="color:var(--fg)">O jogo precisa responder em até <em>~100 ms</em>, de forma contínua, para a sensação de controle não quebrar. Cada técnica de hoje é uma resposta extra dentro desse ciclo.</li>
+        <li class="src">Modelo do Processador Humano (Card, Moran e Newell), citado por Swink no cap. 2</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 5. seis peças -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">AS SEIS PEÇAS QUE O DESIGNER CONTROLA</p>
+    <h2>Onde mexer no feel</h2>
+    <div class="six">
+      <div class="card hot"><span class="tag">PARTE 1</span><h3>Input</h3><p>O dispositivo físico: teclado, mouse, controle. Como a intenção sai da mão.</p></div>
+      <div class="card hot"><span class="tag">PARTE 1</span><h3>Resposta</h3><p>Como o jogo processa e modula o input em tempo real: aceleração, pulo, mira.</p></div>
+      <div class="card"><h3>Contexto</h3><p>Espaço simulado e level design que dão sentido ao controle.</p></div>
+      <div class="card hot"><span class="tag">PARTE 2</span><h3>Juice</h3><p>Efeitos que reforçam artificialmente a impressão de uma realidade física. Swink chama de <i>polish</i>. É o nosso molho.</p></div>
+      <div class="card"><h3>Metáfora</h3><p>A representação muda expectativas: um tanque e uma bola de papel não podem mover-se igual.</p></div>
+      <div class="card"><h3>Regras</h3><p>Variáveis abstratas (vida, dano, pontos) mudam como percebemos os objetos.</p></div>
+    </div>
+    <p class="src" style="margin-top:20px">Swink, cap. 5, Beyond Intuition: Metrics for Game Feel</p>
+  </section>
+
+  <!-- 6. juice -->
+  <section class="slide s-blob" data-game="off">
+    <p class="eyebrow">JUICE (O <i>POLISH</i> DE SWINK)</p>
+    <h2 style="margin-bottom:18px">Mesma física, outra sensação</h2>
+    <p class="lead" style="max-width:none">Juice <em>realça</em> a interação <em>sem mudar a simulação</em>. As duas bolas seguem exatamente a mesma trajetória.</p>
+    <div class="blob-wrap">
+      <canvas id="blobCanvas" width="584" height="128" aria-label="Duas bolas quicando com a mesma física: a da esquerda rígida, a da direita deformando e deixando manchas de tinta"></canvas>
+      <div class="blob-cap">
+        <div><b>Bola de pedra</b><span>Só a física: posição, velocidade, colisão.</span></div>
+        <div><b class="sauce">Bola de tinta</b><span>A mesma física + squash &amp; stretch, balanço e manchas.</span></div>
+      </div>
+    </div>
+    <p class="cite-foot">Caso De Blob, citado por Swink no cap. 1: sem o shader de squash a bola “parecia de pedra”; com ele, e sem mudar a física, virou tinta.</p>
+  </section>
+
+  <!-- 7. princípios -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">SWINK, CAP. 17</p>
+    <h2>Os 7 princípios do game feel</h2>
+    <ul class="prin">
+      <li><span><b>Resultados previsíveis.</b> O jogador recebe a resposta que espera.</span></li>
+      <li class="hot"><span><b>Resposta instantânea.</b> A resposta ao input parece imediata.</span></li>
+      <li><span><b>Fácil, mas profundo.</b> Minutos para aprender, uma vida para dominar.</span></li>
+      <li><span><b>Novidade.</b> Sutileza e expressividade para continuar fresco por horas.</span></li>
+      <li class="hot"><span><b>Resposta atraente.</b> Controlar é gostoso por si só, mesmo sem contexto.</span></li>
+      <li><span><b>Movimento orgânico.</b> O avatar desenha arcos agradáveis.</span></li>
+      <li class="hot" style="grid-column:1/-1"><span><b>Harmonia.</b> Todo efeito conta a mesma história física. Os pés do colosso em Shadow of the Colossus têm som grave, poeira enorme e tremor de tela; os chefões gigantes de Painkiller têm o som, mas a animação e as partículas dizem “pequeno”.</span></li>
+    </ul>
+  </section>
+
+  <!-- 9. método -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">MÉTODO</p>
+    <h2>Pequenos ajustes, outro jogo</h2>
+    <div class="split">
+      <div style="display:flex;flex-direction:column;gap:26px">
+        <p class="lead">Nenhuma técnica sozinha resolve. O que muda a sensação é <em>empilhar</em> dezenas de ajustes pequenos e baratos. A maioria é efeito puro; alguns mexem um pouco nas regras, e vamos avisar quando isso acontecer.</p>
+        <p class="lead muted" style="font-size:22px">Hoje: primeiro 5 truques de controle de Celeste num jogo de plataforma, depois 17 técnicas de juice num shooter. A demo roda no navegador com <em>Phaser 3</em>; os trechos de código estão em <em>C# no estilo Unity</em>.</p>
+      </div>
+      <div class="card">
+        <span class="tag">O ROTEIRO DE CADA DEMO</span>
+        <ol class="steps">
+          <li>Começar de um jogo que funciona, sem nenhum efeito</li>
+          <li>Adicionar uma técnica por vez</li>
+          <li>Comparar com e sem (tecla T)</li>
+          <li>Ajustar a intensidade pela importância do evento</li>
+        </ol>
+      </div>
+    </div>
+    <p class="gloss"><b>Glossário rápido:</b> <b>quadro</b> = uma atualização da tela (~16 ms) · <b>dt</b> (<code>Time.deltaTime</code>) = tempo desde o último quadro · <b>lerp</b> = andar uma fração do caminho até o alvo · <b>easing</b> = acelerar e frear em vez de velocidade constante · <b>tween</b> = animação de um valor ao longo do tempo (na Unity, DOTween ou corrotina) · <b>hitbox</b> = o retângulo invisível que colide</p>
+    <p class="cite-foot">Exercício inspirado em <i>The Art of Screenshake</i>, de Jan Willem Nijman (Vlambeer, INDIGO 2013)</p>
+  </section>
+
+  <!-- 10. como usar -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">ANTES DE COMEÇAR</p>
+    <h2>Como usar a demo</h2>
+    <div class="split">
+      <div class="keys">
+        <kbd>W A S D</kbd><span>andar</span>
+        <kbd>mouse</kbd><span>mirar, segurar o clique para atirar</span>
+        <kbd>T</kbd><span>liga/desliga a técnica do slide (antes × depois)</span>
+        <kbd>0</kbd><span>desliga todo o molho de uma vez</span>
+        <kbd>M</kbd><span>som liga/desliga</span>
+        <kbd>R</kbd><span>limpa o chão</span>
+        <kbd>← →</kbd><span>slides (também PageUp/PageDown e espaço)</span>
+        <kbd>F</kbd><span>tela cheia</span>
+        <kbd>A D · W</kbd><span>na parte de plataforma: andar e pular (H mostra a hitbox)</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+      <div class="card">
+        <span class="tag">DICA DE PALCO</span>
+        <h3>Ninguém jogando? Ele joga sozinho.</h3>
+        <p>Depois de 3 segundos sem input, um piloto automático assume, mira no zumbi mais perto e anda em círculos. Mexeu o mouse, o controle volta para você.</p>
+        <p>Os chips abaixo do jogo mostram cada técnica ligada. Clique em qualquer um para comparar.</p>
+      </div>
+      <div class="card" style="border-color:var(--mustard)">
+        <span class="tag">AVISO</span>
+        <p style="color:var(--fg)">A demo tem flashes e tremor de tela. A tecla <b>0</b> desliga tudo na hora.</p>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- parte 2: controles -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">PARTE 1 · INPUT E RESPOSTA</p>
+    <h2>O molho que ninguém vê</h2>
+    <div class="split">
+      <div style="display:flex;flex-direction:column;gap:26px">
+        <blockquote style="font-size:30px">Todos giram em torno de alargar janelas de tempo ou de posição, para que tudo seja ajustado um pouquinho a favor do jogador.<cite>Maddy Thorson, <i>Celeste &amp; Forgiveness</i> (tradução livre)</cite></blockquote>
+        <p class="lead" style="font-size:22px">Antes de deixar o jogo <em>gostoso de ver</em>, ele precisa ser <em>justo de controlar</em>. Por isso Celeste parece gentil sendo muito difícil: ele quer que você vença.</p>
+      </div>
+      <div class="card">
+        <span class="tag">COMO A DEMO FUNCIONA</span>
+        <h3>Um bot com timing humano</h3>
+        <p>Ele aperta o pulo um pouco atrasado, um pouco adiantado, um pouco desalinhado. Sem o truque, ele falha. Com o truque, passa.</p>
+        <p>As constantes vêm do <code>Player.cs</code> de Celeste, publicado por Noel Berry no GitHub, multiplicadas por 1,6 para a nossa escala: os tiles daqui têm 16 px contra 8 de Celeste, mas o personagem é só ~1,3× maior. O 1,6 deixou o pulo proporcional ao boneco.</p>
+      </div>
+    </div>
+  </section>
+  <div id="ctrlSlides"></div>
+  <section class="slide" data-game="off">
+    <p class="eyebrow">CELESTE &amp; FORGIVENESS · MADDY THORSON</p>
+    <h2>Outros perdões de Celeste</h2>
+    <div class="cols c3" style="gap:18px">
+      <div class="card"><h3>Quina no dash</h3><p>Se um dash lateral raspa numa quina, o jogo te coloca em cima da plataforma.</p></div>
+      <div class="card"><h3>Semi-sólidas</h3><p>Dash lateral através de uma plataforma semi-sólida também te empurra para cima dela.</p></div>
+      <div class="card"><h3>Momento guardado</h3><p>Pular de uma plataforma móvel que acabou de parar ainda dá o impulso dela por alguns quadros.</p></div>
+      <div class="card"><h3>Wall jump de longe</h3><p>Dá para fazer wall jump a 2 px da parede, um quarto de tile. O super wall jump aceita uns 5 px.</p></div>
+      <div class="card"><h3>Stamina devolvida</h3><p>Pulou reto na parede e logo apertou para longe? O jogo converte o pulo e devolve a stamina gasta.</p></div>
+      <div class="card hot"><h3>A regra geral</h3><p>Descubra o que o jogador quis fazer e alargue a janela de tempo ou de posição até isso dar certo.</p></div>
+    </div>
+  </section>
+
+  <!-- 8. juice -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">PARTE 2 · JUICE</p>
+    <h2>Um jogo suculento responde a tudo</h2>
+    <div class="split">
+      <div style="display:flex;flex-direction:column;gap:26px">
+        <p class="lead">Cada ação do jogador deve gerar uma reação <em>exagerada</em> e gostosa de ver e ouvir: muita resposta para pouco input.</p>
+        <p class="lead muted" style="font-size:22px">As regras continuam as mesmas. Muda o quanto o jogo reage. Um bloco que só some quando a bola acerta funciona; um bloco que pisca, treme, solta faíscas e faz barulho <i>convence</i>.</p>
+      </div>
+      <div class="card">
+        <span class="tag">INGREDIENTES COMUNS</span>
+        <ul class="list" style="gap:10px">
+          <li>Movimento com easing: nada aparece ou some de forma linear</li>
+          <li>Squash &amp; stretch</li>
+          <li>Partículas</li>
+          <li>Um som para cada interação</li>
+          <li>Tremor de tela e pausas no impacto</li>
+          <li>Personalidade: olhos, rostos, reações</li>
+        </ul>
+      </div>
+    </div>
+    <p class="cite-foot">Referências: Kyle Gabler et al., <i>How to Prototype a Game in Under 7 Days</i> (2005) · Martin Jonasson e Petri Purho, <i>Juice it or lose it</i> (GDC Europe 2012)</p>
+  </section>
+
+  <!-- slides de técnica são gerados aqui -->
+  <div id="techSlides"></div>
+
+  <!-- antes × depois -->
+  <section class="slide s-ab" data-game="center" data-ab="1">
+    <p class="eyebrow" style="text-align:center">TODAS AS 17 TÉCNICAS</p>
+    <h2>Antes × depois</h2>
+    <button class="toggle" id="abBtn" type="button">MOLHO: LIGADO</button>
+  </section>
+
+  <!-- cuidado -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">MODO DE USAR</p>
+    <h2>Molho demais estraga o prato</h2>
+    <div class="cols c2" style="gap:22px">
+      <div class="card"><h3>Primeiro o prato</h3><p>Juice não conserta controle ruim. Input e resposta vêm antes: se o pulo é travado, partícula nenhuma salva.</p></div>
+      <div class="card"><h3>Proporção</h3><p>Intensidade proporcional à importância: tiro &lt; acerto &lt; morte &lt; dano no jogador. Se tudo treme, nada importa.</p></div>
+      <div class="card"><h3>Harmonia</h3><p>Som, partícula, câmera e animação precisam concordar sobre peso e tamanho. Efeitos que brigam passam a sensação errada.</p></div>
+      <div class="card"><h3>Acessibilidade</h3><p>Ofereça controle de intensidade de shake e de flashes. Tremor de tela causa enjoo e flash forte pode ser perigoso para pessoas fotossensíveis.</p></div>
+    </div>
+  </section>
+
+  <!-- checklist -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">PARA LEVAR PARA CASA</p>
+    <h2>Receita de bolso</h2>
+    <div class="cols c2" style="gap:40px">
+      <ul class="list">
+        <li>Toda ação do jogador: <span>uma resposta visual e uma sonora.</span></li>
+        <li>Acerto: <span>flash branco, knockback, partícula, som.</span></li>
+        <li>Morte: <span>hitstop, shake, explosão, algo que fica no chão.</span></li>
+        <li>Câmera: <span>lerp, look-ahead, kick no tiro.</span></li>
+        <li>Controle: <span>coyote time, jump buffer, correção de quina, pulo variável.</span></li>
+      </ul>
+      <ul class="list">
+        <li>Som: <span>mais grave para peso, pitch aleatório contra repetição.</span></li>
+        <li>Movimento: <span>easing e squash &amp; stretch em vez de linear.</span></li>
+        <li>Exponha as variáveis: <span>todo número de juice deve ser fácil de ajustar.</span></li>
+        <li>Sempre teste com e sem: <span>um botão de liga/desliga, como nesta demo.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- referências -->
+  <section class="slide" data-game="off">
+    <p class="eyebrow">REFERÊNCIAS E CRÉDITOS</p>
+    <h2>Para se aprofundar</h2>
+    <div class="cols c2" style="gap:44px">
+      <ul class="refs">
+        <li><b>Steve Swink.</b> Game Feel: A Game Designer’s Guide to Virtual Sensation. Morgan Kaufmann, 2009.</li>
+        <li><b>Martin Jonasson e Petri Purho.</b> Juice it or lose it. GDC Europe, 2012. <a href="https://www.youtube.com/results?search_query=juice+it+or+lose+it+jonasson+purho" target="_blank" rel="noopener">buscar vídeo</a></li>
+        <li><b>Jan Willem Nijman (Vlambeer).</b> The Art of Screenshake. INDIGO, 2013. <a href="https://www.youtube.com/results?search_query=vlambeer+the+art+of+screenshake" target="_blank" rel="noopener">buscar vídeo</a></li>
+        <li><b>Squirrel Eiserloh.</b> Math for Game Programmers: Juicing Your Cameras With Math. GDC, 2016. <a href="https://www.youtube.com/results?search_query=juicing+your+cameras+with+math" target="_blank" rel="noopener">buscar vídeo</a></li>
+        <li><b>Kyle Gabler et al.</b> How to Prototype a Game in Under 7 Days. Gamasutra, 2005.</li>
+      </ul>
+      <ul class="refs">
+        <li><b>Maddy Thorson.</b> Celeste &amp; Forgiveness. <a href="https://maddymakesgames.com/articles/celeste_and_forgiveness/" target="_blank" rel="noopener">maddymakesgames.com</a></li>
+        <li><b>Noel Berry.</b> Código do Player de Celeste. <a href="https://github.com/NoelFB/Celeste" target="_blank" rel="noopener">github.com/NoelFB/Celeste</a></li>
+        <li><b>Motor:</b> Phaser 3.80 (MIT). <a href="https://phaser.io" target="_blank" rel="noopener">phaser.io</a></li>
+        <li><b>Sprites:</b> RPG Urban Pack, Kenney (CC0). <a href="https://kenney.nl" target="_blank" rel="noopener">kenney.nl</a></li>
+        <li><b>Sons:</b> efeitos da Kenney (CC0), via pacote de recursos do Python Arcade. O sub-grave é sintetizado com Web Audio.</li>
+        <li><b>Fontes:</b> Kenney Mini Square e Kenney Pixel (CC0), Atkinson Hyperlegible e JetBrains Mono (OFL).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- fim -->
+  <section class="slide s-end" data-game="bg">
+    <div class="wrap">
+      <p class="eyebrow">SECOMP · UFAL</p>
+      <h1>Obrigado!</h1>
+      <p class="lead" style="font-size:30px"><b>Thiago Cortez</b> · Agora vai lá colocar molho no seu jogo.</p>
+    </div>
+  </section>
+
+  <div id="chrome">
+    <span id="count">1 / 1</span>
+    <span id="help">← → slides · T antes/depois · 0 sem molho · M som · F tela cheia</span>
+    <button id="prev" type="button" aria-label="Slide anterior">‹</button>
+    <button id="next" type="button" aria-label="Próximo slide">›</button>
+  </div>
+  <div id="progress"></div>
+  <button id="start" type="button"><span>clique para ativar o som e começar</span></button>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+<script>
+const ASSETS = {{ASSETS_JSON}};
+</script>
+<script>
+"use strict";
+/* =========================================================
+   TÉCNICAS (ordem dos slides)
+   ========================================================= */
+const TECH = [
+ {
+  "id": "anim",
+  "flags": [
+   "anim"
+  ],
+  "chip": "animação",
+  "title": "Animação básica",
+  "src": "Art of Screenshake",
+  "desc": "Ciclo de caminhada de 4 quadros e o sprite vira para o lado da mira. Os zumbis também andam. É o mínimo para algo parecer vivo.",
+  "why": "Sem animação, o personagem desliza como uma peça de tabuleiro. O olho não acredita que existe um corpo ali.",
+  "code": "<span class=\"c\">// idle, passo A, idle, passo B</span>\n<span class=\"k\">int</span>[] ciclo = { <span class=\"n\">0</span>, <span class=\"n\">1</span>, <span class=\"n\">0</span>, <span class=\"n\">2</span> };\n<span class=\"k\">int</span> q = ciclo[(<span class=\"k\">int</span>)(<span class=\"t\">Time</span>.time / <span class=\"n\">0.11f</span>) % <span class=\"n\">4</span>];\nsr.sprite = quadros[q];\nsr.flipX = mira.x &lt; <span class=\"n\">0f</span>;"
+ },
+ {
+  "id": "sound",
+  "flags": [
+   "sound"
+  ],
+  "chip": "som",
+  "title": "Som",
+  "src": "Swink, cap. 9",
+  "desc": "Cada tiro, acerto, morte e dano ganha um efeito sonoro. Ainda sem tratamento: sempre o mesmo pitch, sempre o mesmo volume.",
+  "why": "O som chega junto com a imagem e os dois viram um evento só. Desligue o som de qualquer jogo de ação e veja quanto do impacto vai embora.",
+  "code": "[<span class=\"t\">SerializeField</span>] <span class=\"t\">AudioClip</span> tiro, acerto;\n\naudioSource.PlayOneShot(tiro);\n<span class=\"c\">// ao acertar</span>\naudioSource.PlayOneShot(acerto);"
+ },
+ {
+  "id": "fire",
+  "flags": [
+   "fire"
+  ],
+  "chip": "cadência",
+  "title": "Mais tiros, menos precisão",
+  "src": "Art of Screenshake",
+  "desc": "Intervalo entre tiros cai de 280 ms para 90 ms e cada bala sai com um desvio aleatório pequeno. Mais zumbis na tela também.",
+  "why": "Mais tiros = mais eventos de feedback por segundo. Atenção: isto não é juice puro. Cadência e número de inimigos são regras, mudam ritmo e dificuldade. Em Swink, isto é resposta e regras, não polish.",
+  "code": "cooldown = <span class=\"n\">0.09f</span>;        <span class=\"c\">// era 0.28f</span>\nangulo += <span class=\"t\">Random</span>.Range(-<span class=\"n\">7f</span>, <span class=\"n\">7f</span>); <span class=\"c\">// graus</span>\nmaxZumbis = <span class=\"n\">10</span>;          <span class=\"c\">// era 7</span>"
+ },
+ {
+  "id": "bullets",
+  "flags": [
+   "bullets"
+  ],
+  "chip": "balas",
+  "title": "Balas maiores e mais rápidas",
+  "src": "Art of Screenshake",
+  "desc": "A bala de 2×2 pixels vira um projétil alongado de 8×4, e a velocidade sobe de 160 para 340 px/s.",
+  "why": "Bala grande é legível. Bala rápida chega antes de o jogador ter tempo de duvidar do acerto.",
+  "code": "bala.localScale = <span class=\"k\">new</span> <span class=\"t\">Vector3</span>(<span class=\"n\">4f</span>, <span class=\"n\">2f</span>, <span class=\"n\">1f</span>);\nbala.rotation = <span class=\"t\">Quaternion</span>.Euler(<span class=\"n\">0</span>,<span class=\"n\">0</span>,angulo);\nrb.linearVelocity = dir * <span class=\"n\">340f</span>;  <span class=\"c\">// era 160</span>"
+ },
+ {
+  "id": "muzzle",
+  "flags": [
+   "muzzle"
+  ],
+  "chip": "muzzle flash",
+  "title": "Muzzle flash",
+  "src": "Art of Screenshake",
+  "desc": "Um círculo branco na ponta da arma por 2 ou 3 quadros, com tamanho aleatório a cada tiro.",
+  "why": "É o efeito com melhor custo-benefício da lista: um sprite, alguns milissegundos, e o tiro passa a ter força.",
+  "code": "<span class=\"t\">IEnumerator</span> MuzzleFlash() {\n  flash.transform.localScale =\n    <span class=\"t\">Vector3</span>.one * <span class=\"t\">Random</span>.Range(<span class=\"n\">0.7f</span>, <span class=\"n\">1.2f</span>);\n  flash.SetActive(<span class=\"k\">true</span>);\n  <span class=\"k\">yield</span> <span class=\"k\">return</span> <span class=\"k\">new</span> <span class=\"t\">WaitForSeconds</span>(<span class=\"n\">0.045f</span>);\n  flash.SetActive(<span class=\"k\">false</span>);\n}"
+ },
+ {
+  "id": "impact",
+  "flags": [
+   "impact"
+  ],
+  "chip": "impacto",
+  "title": "Partículas de impacto",
+  "src": "Art of Screenshake",
+  "desc": "Faíscas no ponto de acerto, espirradas na direção da bala. Quando a bala bate na borda, levanta poeira.",
+  "why": "O tiro precisa terminar em algum lugar. Sem impacto, a bala some e o cérebro não fecha o evento.",
+  "code": "<span class=\"c\">// ParticleSystem com Emission desligada</span>\n<span class=\"c\">// e Shape em cone de ±35°</span>\nfaiscas.transform.SetPositionAndRotation(\n  ponto, <span class=\"t\">Quaternion</span>.Euler(<span class=\"n\">0</span>, <span class=\"n\">0</span>, angulo));\nfaiscas.Emit(<span class=\"n\">6</span>);"
+ },
+ {
+  "id": "flash",
+  "flags": [
+   "flash"
+  ],
+  "chip": "flash dano",
+  "title": "Flash branco no dano",
+  "src": "Art of Screenshake",
+  "desc": "O zumbi fica totalmente branco por cerca de 60 ms quando leva um tiro. O jogador também pisca quando apanha.",
+  "why": "É a confirmação mais clara de acerto que existe. Funciona até com o canto do olho.",
+  "code": "<span class=\"c\">// shader com _Flash: mistura a cor com branco</span>\n<span class=\"t\">IEnumerator</span> Flash() {\n  sr.material.SetFloat(<span class=\"s\">\"_Flash\"</span>, <span class=\"n\">1f</span>);\n  <span class=\"k\">yield</span> <span class=\"k\">return</span> <span class=\"k\">new</span> <span class=\"t\">WaitForSeconds</span>(<span class=\"n\">0.06f</span>);\n  sr.material.SetFloat(<span class=\"s\">\"_Flash\"</span>, <span class=\"n\">0f</span>);\n}"
+ },
+ {
+  "id": "knock",
+  "flags": [
+   "knock"
+  ],
+  "chip": "knockback",
+  "title": "Knockback no inimigo",
+  "src": "Art of Screenshake",
+  "desc": "Cada bala empurra o zumbi na direção do tiro. O empurrão decai rápido, com atrito exponencial.",
+  "why": "Agora a bala tem massa. Este já muda a jogabilidade: o zumbi muda de lugar de verdade, e segurar a horda vira tática.",
+  "code": "<span class=\"c\">// no acerto</span>\nknock += dir * <span class=\"n\">110f</span>;\n<span class=\"c\">// no Update do zumbi</span>\nknock *= <span class=\"t\">Mathf</span>.Exp(-<span class=\"n\">10f</span> * <span class=\"t\">Time</span>.deltaTime);\npos += (vel + knock) * <span class=\"t\">Time</span>.deltaTime;"
+ },
+ {
+  "id": "hitstop",
+  "flags": [
+   "hitstop"
+  ],
+  "chip": "hitstop",
+  "title": "Hitstop (sleep)",
+  "src": "Art of Screenshake",
+  "desc": "O jogo congela 1 quadro (~16 ms) em cada acerto, ~50 ms quando um zumbi morre e ~90 ms quando o jogador apanha. A câmera continua tremendo.",
+  "why": "A pausa dá ao cérebro tempo de registrar o golpe. Cuidado: congelar é atrasar a resposta. Fique abaixo dos ~100 ms do ciclo de correção, ou o controle parece travar.",
+  "code": "<span class=\"t\">IEnumerator</span> Hitstop(<span class=\"k\">float</span> s) {\n  <span class=\"t\">Time</span>.timeScale = <span class=\"n\">0f</span>;\n  <span class=\"k\">yield</span> <span class=\"k\">return</span> <span class=\"k\">new</span> <span class=\"t\">WaitForSecondsRealtime</span>(s);\n  <span class=\"t\">Time</span>.timeScale = <span class=\"n\">1f</span>;\n}\n<span class=\"c\">// StartCoroutine(Hitstop(0.05f));</span>"
+ },
+ {
+  "id": "shake",
+  "flags": [
+   "shake"
+  ],
+  "chip": "screen shake",
+  "title": "Screen shake",
+  "src": "Art of Screenshake · Eiserloh",
+  "desc": "Cada evento soma “trauma” (de 0 a 1). O deslocamento da câmera é trauma², então tiro e acerto quase não tremem, a morte treme e apanhar treme muito.",
+  "why": "Elevar ao quadrado deixa o pequeno sutil e o grande forte. Use ruído suave (Mathf.PerlinNoise) em vez de Random.Range a cada quadro: o tremor fica orgânico em vez de “chuviscado”.",
+  "code": "<span class=\"k\">float</span> Ruido(<span class=\"k\">float</span> t, <span class=\"k\">float</span> k) =&gt;\n  <span class=\"t\">Mathf</span>.PerlinNoise(t, k) * <span class=\"n\">2f</span> - <span class=\"n\">1f</span>;\n<span class=\"c\">// tiro .05 acerto .06 morte .3 dano .6</span>\ntrauma = <span class=\"t\">Mathf</span>.Min(<span class=\"n\">1f</span>, trauma + valor);\n<span class=\"k\">float</span> s = trauma * trauma;\n<span class=\"k\">float</span> t = <span class=\"t\">Time</span>.time * <span class=\"n\">25f</span>;\noffset = <span class=\"k\">new</span> <span class=\"t\">Vector2</span>(Ruido(t, <span class=\"n\">0f</span>),\n                     Ruido(t, <span class=\"n\">9f</span>)) * MAX * s;\ntrauma -= <span class=\"t\">Time</span>.unscaledDeltaTime * <span class=\"n\">1.6f</span>;"
+ },
+ {
+  "id": "kick",
+  "flags": [
+   "kick"
+  ],
+  "chip": "recuo",
+  "title": "Recuo (kickback)",
+  "src": "Art of Screenshake",
+  "desc": "A arma recua alguns pixels, o jogador é empurrado para trás e a câmera dá um tranco contra a direção do tiro.",
+  "why": "São três truques num slide só: a arma recua, o jogador é empurrado (isso muda a jogabilidade: atirar enquanto foge te ajuda) e a câmera dá um tranco.",
+  "code": "recuoArma = <span class=\"n\">3f</span>;      <span class=\"c\">// volta a 0 com lerp</span>\nknock -= dir * <span class=\"n\">40f</span>;  <span class=\"c\">// empurra o jogador</span>\ncamKick -= dir * <span class=\"n\">4f</span>; <span class=\"c\">// tranco na câmera</span>"
+ },
+ {
+  "id": "camera",
+  "flags": [
+   "camera"
+  ],
+  "chip": "câmera",
+  "title": "Câmera suave e look-ahead",
+  "src": "Art of Screenshake · Eiserloh",
+  "desc": "A câmera persegue o jogador com lerp e se adianta para o lado da mira, mostrando mais do que importa.",
+  "why": "Câmera grudada transmite cada tremida do input. Suavizar e antecipar deixa o movimento fluido e legível.",
+  "code": "<span class=\"k\">void</span> LateUpdate() {\n  <span class=\"t\">Vector3</span> alvo = player.position\n               + (<span class=\"t\">Vector3</span>)mira * <span class=\"n\">40f</span>;\n  <span class=\"k\">float</span> dt = <span class=\"t\">Time</span>.deltaTime;\n  <span class=\"c\">// fração do caminho, igual em 30 ou 144 FPS</span>\n  <span class=\"k\">float</span> k = <span class=\"n\">1f</span> - <span class=\"t\">Mathf</span>.Exp(-<span class=\"n\">6f</span> * dt);\n  pos = <span class=\"t\">Vector3</span>.Lerp(pos, alvo, k);\n}"
+ },
+ {
+  "id": "perm",
+  "flags": [
+   "perm"
+  ],
+  "chip": "permanência",
+  "title": "Permanência",
+  "src": "Art of Screenshake",
+  "desc": "Cápsulas, corpos e manchas ficam no chão para sempre, carimbados numa RenderTexture: uma imagem única onde uma câmera que nunca limpa a tela vai desenhando por cima. Mil corpos custam o mesmo que um.",
+  "why": "O mundo lembra do que você fez. Depois de um minuto, o chão conta a história da partida.",
+  "code": "<span class=\"c\">// câmera de decals que nunca limpa a tela</span>\ndc.clearFlags = <span class=\"t\">CameraClearFlags</span>.Nothing;\ndc.targetTexture = chaoRT;\n<span class=\"c\">// posiciona corpo e mancha, carimba 1 vez</span>\ndc.Render();\n<span class=\"t\">Destroy</span>(corpo);"
+ },
+ {
+  "id": "squash",
+  "flags": [
+   "squash"
+  ],
+  "chip": "squash",
+  "title": "Squash & stretch",
+  "src": "Swink · Juice it or lose it",
+  "desc": "O zumbi achata quando leva tiro e volta com uma mola que passa do ponto e balança. Ao nascer, surge crescendo com exagero. Balas esticam no sentido do movimento.",
+  "why": "É o primeiro princípio da animação da Disney e, segundo Swink, transformou a bola de pedra de De Blob em tinta.",
+  "code": "sx = <span class=\"n\">1.45f</span>;                 <span class=\"c\">// acerto</span>\n<span class=\"c\">// mola: passa do 1 e volta</span>\nvs += (-<span class=\"n\">300f</span> * (sx - <span class=\"n\">1f</span>) - <span class=\"n\">12f</span> * vs) * dt;\nsx += vs * dt;\n<span class=\"c\">// 1 / sx mantém a área</span>\ntr.localScale = <span class=\"k\">new</span> <span class=\"t\">Vector3</span>(sx, <span class=\"n\">1f</span> / sx, <span class=\"n\">1f</span>);"
+ },
+ {
+  "id": "bass",
+  "flags": [
+   "bass"
+  ],
+  "chip": "som grave",
+  "title": "Sons mais graves",
+  "src": "Art of Screenshake",
+  "desc": "Pitch abaixo de 1, variação aleatória de ±10% em cada disparo e um sub-grave senoidal sintetizado embaixo do tiro e da morte.",
+  "why": "Grave significa peso. A variação de pitch tira o efeito “metralhadora de brinquedo” do mesmo som repetido.",
+  "code": "src.pitch = <span class=\"n\">0.72f</span> * <span class=\"t\">Random</span>.Range(<span class=\"n\">0.9f</span>, <span class=\"n\">1.1f</span>);\nsrc.PlayOneShot(tiro);\n<span class=\"c\">// sub-grave: senoide de 140 a 45 Hz, 0,12 s</span>\nsrc.PlayOneShot(subGrave, <span class=\"n\">0.35f</span>);"
+ },
+ {
+  "id": "boom",
+  "flags": [
+   "boom"
+  ],
+  "chip": "explosão",
+  "title": "Explosão na morte",
+  "src": "Art of Screenshake",
+  "desc": "A morte vira um evento: clarão branco que expande, fumaça, estilhaços, mais trauma e um estrondo grave.",
+  "why": "O momento mais importante da interação merece o maior efeito. É a recompensa pelo trabalho do jogador.",
+  "code": "<span class=\"c\">// com DOTween (asset gratuito)</span>\n<span class=\"k\">var</span> t = clarao.transform;\nt.localScale = <span class=\"t\">Vector3</span>.one * <span class=\"n\">0.3f</span>;\nt.DOScale(<span class=\"n\">1.8f</span>, <span class=\"n\">0.2f</span>).SetEase(<span class=\"t\">Ease</span>.OutQuad);\nclarao.DOFade(<span class=\"n\">0f</span>, <span class=\"n\">0.2f</span>);\nfumaca.Emit(<span class=\"n\">10</span>);"
+ },
+ {
+  "id": "ui",
+  "flags": [
+   "ui"
+  ],
+  "chip": "UI viva",
+  "title": "UI que reage",
+  "src": "Juice it or lose it",
+  "desc": "O placar pulsa a cada abate, um “+1” sobe e some com easing, e a borda da tela fica vermelha quando você apanha.",
+  "why": "Tweening com easing faz qualquer elemento parecer vivo. A interface também é parte do mundo.",
+  "code": "<span class=\"c\">// com DOTween (asset gratuito)</span>\n<span class=\"k\">var</span> t = placar.transform;\nt.localScale = <span class=\"t\">Vector3</span>.one * <span class=\"n\">1.6f</span>;\nt.DOScale(<span class=\"n\">1f</span>, <span class=\"n\">0.25f</span>).SetEase(<span class=\"t\">Ease</span>.OutBack);"
+ }
+];
+const CTRL = [
+ {
+  "id": "coyote",
+  "flags": [
+   "coyote"
+  ],
+  "chip": "coyote time",
+  "title": "Coyote time",
+  "src": "Celeste · JumpGraceTime = 0.1f",
+  "desc": "Ainda dá para pular por 0,1 s depois de sair da borda. O nome vem do Coiote do Papa-Léguas, que só cai quando olha para baixo.",
+  "why": "O bot aperta ~60 ms depois de sair da borda. Ele acha que apertou na hora. O jogo concorda com a percepção, não com o pixel.",
+  "code": "<span class=\"k\">const</span> <span class=\"k\">float</span> COYOTE = <span class=\"n\">0.1f</span>; <span class=\"c\">// JumpGraceTime</span>\n<span class=\"k\">if</span> (noChao) coyote = COYOTE;\n<span class=\"k\">else</span> coyote -= <span class=\"t\">Time</span>.deltaTime;\n<span class=\"k\">if</span> (apertou &amp;&amp; coyote &gt; <span class=\"n\">0f</span>) {\n  Pular(); coyote = <span class=\"n\">0f</span>;  <span class=\"c\">// gasta o perdão</span>\n}"
+ },
+ {
+  "id": "buffer",
+  "flags": [
+   "buffer"
+  ],
+  "chip": "jump buffer",
+  "title": "Jump buffer",
+  "src": "Celeste & Forgiveness",
+  "desc": "Apertar o pulo um pouco antes de tocar o chão também vale. O input fica guardado e o pulo sai no quadro exato do pouso.",
+  "why": "Sem buffer, o botão que chegou cedo demais some, e o jogador sente que o controle “comeu” o input. Aqui o bot aperta ~30 ms antes de pousar no pilar.",
+  "code": "<span class=\"k\">if</span> (<span class=\"t\">Input</span>.GetButtonDown(<span class=\"s\">\"Jump\"</span>))\n  buffer = <span class=\"n\">0.1f</span>;\n<span class=\"k\">if</span> (buffer &gt; <span class=\"n\">0f</span> &amp;&amp; PodePular()) {\n  Pular(); buffer = <span class=\"n\">0f</span>;\n}\nbuffer -= <span class=\"t\">Time</span>.deltaTime;"
+ },
+ {
+  "id": "corner",
+  "flags": [
+   "corner"
+  ],
+  "chip": "correção de quina",
+  "title": "Correção de quina",
+  "src": "Celeste · UpwardCornerCorrection = 4",
+  "desc": "Se a cabeça bate na quina de um teto, o jogo empurra o personagem para o lado até ele passar: 4 px em Celeste, 6 px na nossa escala.",
+  "why": "O bot pula 3 px desalinhado do buraco. Ninguém percebe 3 px, mas todo mundo percebe a cabeçada. A hitbox desenhada mostra o deslocamento.",
+  "code": "<span class=\"c\">// colidiu subindo?</span>\n<span class=\"k\">for</span> (<span class=\"k\">int</span> i = <span class=\"n\">1</span>; i &lt;= <span class=\"n\">4</span>; i++) {\n  <span class=\"k\">var</span> teste = pos + <span class=\"k\">new</span> <span class=\"t\">Vector2</span>(i * dir, <span class=\"n\">1</span>);\n  <span class=\"k\">if</span> (!Colide(teste)) {\n    pos.x += i * dir;  <span class=\"c\">// passa pela quina</span>\n    break;\n  }\n}"
+ },
+ {
+  "id": "varjump",
+  "flags": [
+   "varjump"
+  ],
+  "chip": "pulo variável",
+  "title": "Pulo de altura variável",
+  "src": "Celeste · VarJumpTime = .2f",
+  "desc": "Segurar o botão mantém a velocidade de subida por até 0,2 s. Soltar antes encerra o impulso. Toquinho é pulinho, segurar é pulão.",
+  "why": "Este não é um perdão, é expressividade: o “fácil, mas profundo” do Swink, presente desde Super Mario Bros. Sem ele, o toquinho do bot vira um pulo inteiro direto nos espinhos.",
+  "code": "<span class=\"k\">if</span> (varTimer &gt; <span class=\"n\">0f</span>) {\n  <span class=\"k\">if</span> (<span class=\"t\">Input</span>.GetButton(<span class=\"s\">\"Jump\"</span>))\n    vel.y = <span class=\"t\">Mathf</span>.Max(vel.y, PULO);\n  <span class=\"k\">else</span> varTimer = <span class=\"n\">0f</span>;\n  varTimer -= <span class=\"t\">Time</span>.deltaTime;\n}"
+ },
+ {
+  "id": "halfgrav",
+  "flags": [
+   "halfgrav"
+  ],
+  "chip": "meia gravidade",
+  "title": "Meia gravidade no ápice",
+  "src": "Celeste · HalfGravThreshold = 40",
+  "desc": "Se você segura o pulo, o topo do pulo tem metade da gravidade. Os pontos amarelos no rastro mostram onde isso acontece.",
+  "why": "Mais tempo no ar para corrigir a trajetória, e o pulo ganha uma “flutuada” que parece intencional. Aqui é a diferença entre cair por 1 px e chegar.",
+  "code": "<span class=\"c\">// 40 em Celeste, 64 na nossa escala</span>\n<span class=\"k\">bool</span> meia = <span class=\"t\">Mathf</span>.Abs(vel.y) &lt; <span class=\"n\">40f</span>\n         &amp;&amp; <span class=\"t\">Input</span>.GetButton(<span class=\"s\">\"Jump\"</span>);\n<span class=\"k\">float</span> g = GRAV * (meia ? <span class=\"n\">0.5f</span> : <span class=\"n\">1f</span>);\nvel.y -= g * <span class=\"t\">Time</span>.deltaTime;"
+ }
+];
+const PECAS = [];
+const BASE_JUICE_CODE = "<span class=\"c\">// a lógica inteira, sem efeito nenhum</span>\n<span class=\"k\">void</span> Update() {\n  cd -= <span class=\"t\">Time</span>.deltaTime;\n  <span class=\"k\">if</span> (<span class=\"t\">Input</span>.GetMouseButton(<span class=\"n\">0</span>) &amp;&amp; cd &lt;= <span class=\"n\">0f</span>) {\n    Atirar(angulo, <span class=\"n\">160f</span>);\n    cd = <span class=\"n\">0.28f</span>;\n  }\n}\n<span class=\"k\">void</span> Acertou(Zumbi z) {\n  <span class=\"k\">if</span> (--z.hp &lt;= <span class=\"n\">0</span>) <span class=\"t\">Destroy</span>(z.gameObject);\n}";
+const BASE_CTRL_CODE = "<span class=\"k\">if</span> (<span class=\"t\">Input</span>.GetButtonDown(<span class=\"s\">\"Jump\"</span>) &amp;&amp; noChao)\n  Pular();\n<span class=\"c\">// nada de janela, nada de memória</span>";
+
+(function buildSlides(){
+  const sec = (attrs, html) => {
+    const s = document.createElement('section'); s.className = 'slide s-game'; s.dataset.game = 'panel';
+    Object.assign(s.dataset, attrs); s.innerHTML = html; return s;
+  };
+  const body = (eyebrow, title, desc, why, code, hint) =>
+    `<div class="head"><p class="eyebrow">${eyebrow}</p><h2>${title}</h2></div>
+     <div class="left"><p class="desc">${desc}</p><p class="why">${why}</p><pre class="code">${code}</pre></div>
+     <p class="hint">${hint}</p>`;
+  const nn = i => String(i).padStart(2, '0');
+  // parte 1: Celeste
+  let frag = document.createDocumentFragment();
+  frag.appendChild(sec({ level: '0', set: 'ctrl', scen: 'coyote' }, body(`PONTO DE PARTIDA · 0 / ${CTRL.length}`, 'Um jogo de plataforma sem perdão',
+    'Física de Celeste, mas o pulo só sai se o botão for apertado no quadro exato em que o personagem está no chão. Tudo é literal.',
+    'O bot aperta o pulo ~60 ms depois de sair da borda. Para o código, ele já estava no ar. Para quem joga, foi na hora certa.',
+    BASE_CTRL_CODE, 'A D andar · W ou K pular · H hitbox · sem input por 3 s = bot')));
+  CTRL.forEach((t, i) => frag.appendChild(sec({ level: String(i + 1), set: 'ctrl', scen: t.id }, body(
+    `TRUQUE ${nn(i + 1)} / ${CTRL.length} · ${t.src.toUpperCase()}`, t.title, t.desc, t.why, t.code,
+    'T compara antes × depois · 0 desliga todos os truques · A D W para jogar'))));
+  document.getElementById('ctrlSlides').replaceWith(frag);
+  // parte 2: juice
+  frag = document.createDocumentFragment();
+  frag.appendChild(sec({ level: '0' }, body(`PONTO DE PARTIDA · 0 / ${TECH.length}`, 'O jogo sem molho',
+    'Um top-down shooter honesto: anda, mira, atira, zumbi morre em 3 tiros. Tudo funciona. Nada se sente.',
+    'Repare: personagem parado, tiro lento e pequeno, inimigo que some sem deixar rastro, silêncio total, câmera colada no jogador.',
+    BASE_JUICE_CODE, 'W A S D andar · mouse mirar e atirar · sem input por 3 s = piloto automático')));
+  TECH.forEach((t, i) => frag.appendChild(sec({ level: String(i + 1) }, body(
+    `TÉCNICA ${nn(i + 1)} / ${TECH.length} · ${t.src.toUpperCase()}`, t.title, t.desc, t.why, t.code,
+    'T compara antes × depois · 0 desliga todo o molho · clique nos chips'))));
+  document.getElementById('techSlides').replaceWith(frag);
+})();
+
+/* =========================================================
+   ÁUDIO (Web Audio puro: buffers Kenney + sub-grave sintetizado)
+   ========================================================= */
+const SFX = {
+  ctx:null, master:null, buf:{}, muted:false,
+  init(){
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain(); this.master.gain.value = 0.5; this.master.connect(this.ctx.destination);
+    for (const [k, b64] of Object.entries(ASSETS.snd)) {
+      const bin = atob(b64); const u = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      this.ctx.decodeAudioData(u.buffer).then(b => this.buf[k] = b).catch(() => {});
+    }
+  },
+  play(name, rate = 1, vol = 1){
+    if (!this.ctx || this.muted || !this.buf[name]) return;
+    const s = this.ctx.createBufferSource(); s.buffer = this.buf[name]; s.playbackRate.value = rate;
+    const g = this.ctx.createGain(); g.gain.value = vol; s.connect(g); g.connect(this.master); s.start();
+  },
+  thump(f0, f1, dur, vol){
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime, o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.02);
+  }
+};
+
+/* =========================================================
+   ESTADO DO MOLHO
+   ========================================================= */
+const J = {};             // flags lidas pelos jogos
+const itemOn = {};        // estado de cada item (camada, truque, peça)
+const STATE = { set: 'juice', level: 0, mode: 'bg', overrides: {}, allOff: false, forceAll: false, only: false, extra: [] };
+const LISTS = { juice: TECH, ctrl: CTRL, pecas: PECAS };
+const curList = () => LISTS[STATE.set];
+function recomputeJuice(){
+  for (const [set, list] of Object.entries(LISTS)) list.forEach((t, i) => {
+    let on = false;
+    if (set === STATE.set) {
+      on = STATE.only ? i === STATE.level - 1 : (STATE.forceAll || i < STATE.level);
+      if (!STATE.forceAll && t.id in STATE.overrides) on = STATE.overrides[t.id];
+      if (STATE.allOff) on = false;
+    }
+    if (STATE.extra.includes(set)) on = true;
+    itemOn[t.id] = on;
+  });
+  const flags = {};
+  for (const list of Object.values(LISTS)) list.forEach(t => t.flags.forEach(f => { flags[f] = flags[f] || itemOn[t.id]; }));
+  for (const f in flags) {
+    const was = !!J[f]; J[f] = flags[f];
+    if (was && !J[f] && f === 'perm' && window.ARENA) ARENA.clearFloor();
+    if (f === 'sponge' && was !== J[f] && window.ARENA) ARENA.enemies.forEach(e => { e.hp = J.sponge ? 12 : 3; });
+  }
+  const badge = document.getElementById('badge');
+  if (STATE.set === 'pecas' && STATE.level > 0) {
+    const t = PECAS[STATE.level - 1];
+    badge.textContent = itemOn[t.id] ? t.on : t.off; badge.classList.add('on');
+  } else {
+    badge.textContent = STATE.set === 'ctrl' ? 'SEM PERDÃO' : 'SEM MOLHO';
+    badge.classList.toggle('on', STATE.allOff || (STATE.mode !== 'bg' && !curList().some(t => itemOn[t.id])));
+  }
+  renderChips();
+}
+const CHIPS = { juice: document.getElementById('chips'), ctrl: document.getElementById('chips2') };
+for (const [set, list] of Object.entries(LISTS)) if (CHIPS[set]) list.forEach(t => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = t.chip; b.dataset.id = t.id;
+  b.addEventListener('click', () => { STATE.overrides[t.id] = !itemOn[t.id]; STATE.allOff = false; recomputeJuice(); });
+  CHIPS[set].appendChild(b);
+});
+function renderChips(){
+  for (const [set, el] of Object.entries(CHIPS)) [...el.children].forEach((b, i) => {
+    const t = LISTS[set][i], on = !!itemOn[t.id];
+    b.classList.toggle('on', on);
+    const cur = STATE.set === set && STATE.level === i + 1;
+    b.classList.toggle('cur', cur); b.classList.toggle('off', cur && !on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+/* =========================================================
+   JOGO (Phaser 3)
+   ========================================================= */
+const VW = 384, VH = 216, WW = 672, WH = 432;
+const T = (r, c) => r * 27 + c;
+const CH = (who, row, col) => (who * 3 + row) * 27 + 23 + col;   // col: 0 esq, 1 frente, 2 costas, 3 dir
+const rand = (a, b) => a + Math.random() * (b - a);
+const ZTINTS = [0x9fe38a, 0xb5e07a, 0x8fd6a0];
+const CICLO = [0, 1, 0, 2];
+// ruído suave em [-1, 1]: soma de senos com fases diferentes (substituto leve de Perlin)
+const ruido = (t, k) => (Math.sin(t + k * 12.9) + 0.6 * Math.sin(t * 2.31 + k * 7.1) + 0.3 * Math.sin(t * 4.17 + k * 3.3)) / 1.9;
+
+class Arena extends Phaser.Scene {
+  constructor(){ super('arena'); }
+  create(){
+    window.ARENA = this;
+    this.makeTextures();
+    // chão
+    const floor = this.add.renderTexture(0, 0, WW, WH).setOrigin(0).setDepth(0);
+    for (let y = 0; y < WH; y += 16) for (let x = 0; x < WW; x += 16) floor.drawFrame('urban', T(16, 9), x, y);
+    // calçada em cima e embaixo, faixa tracejada no meio
+    for (let x = 0; x < WW; x += 16) {
+      floor.drawFrame('urban', T(1, 9), x, 0); floor.drawFrame('urban', T(1, 9), x, 16); floor.drawFrame('urban', T(1, 9), x, WH - 16);
+      if ((x / 16) % 3 === 1) floor.drawFrame('urban', T(16, 1), x, WH / 2 - 8);
+    }
+    this.decals = this.add.renderTexture(0, 0, WW, WH).setOrigin(0).setDepth(1);
+    this.gfx = this.make.graphics({ x: 0, y: 0 }, false);
+    this.placeDecor();
+
+    // jogador
+    this.P = { x: WW / 2, y: WH / 2, kx: 0, ky: 0, aim: 0, cd: 0, inv: 0, recoil: 0, walkT: 0, moving: false, flash: 0,
+      sprite: this.add.sprite(WW / 2, WH / 2, 'urban', CH(0, 0, 1)).setOrigin(0.5, 1),
+      gun: this.add.image(0, 0, 'gun').setOrigin(0.15, 0.5) };
+    this.muzzle = this.add.image(0, 0, 'muzzle').setVisible(false).setDepth(9000).setBlendMode(Phaser.BlendModes.ADD);
+    this.muzzleT = 0;
+
+    this.enemies = []; this.bullets = []; this.shells = []; this.texts = [];
+    this.spawnT = 0; this.freeze = 0; this.trauma = 0; this.kills = 0;
+    this.cam = { x: WW / 2, y: WH / 2, kx: 0, ky: 0 };
+    this.lastInput = -1e9;
+
+    // partículas
+    const P = (tex, cfg) => this.add.particles(0, 0, tex, Object.assign({ emitting: false }, cfg)).setDepth(8000);
+    this.sparks = P('px', { speed: { min: 50, max: 170 }, lifespan: { min: 100, max: 260 }, scale: { start: 2, end: 0 }, tint: [0xffffff, 0xffe27a, 0xffa13d] });
+    this.goo = P('px', { speed: { min: 20, max: 90 }, lifespan: { min: 200, max: 420 }, scale: { start: 2.5, end: 0.5 }, tint: [0x8fdc72, 0x4e9a3c, 0xc8f59a] });
+    this.dust = P('puff', { speed: { min: 6, max: 30 }, lifespan: { min: 200, max: 380 }, scale: { start: 0.35, end: 0.9 }, alpha: { start: 0.55, end: 0 }, tint: 0xc9c0dd });
+    this.smoke = P('puff', { speed: { min: 12, max: 48 }, lifespan: { min: 450, max: 900 }, scale: { start: 0.7, end: 1.6 }, alpha: { start: 0.75, end: 0 }, tint: [0x5d5577, 0x7c7398, 0x3f3858] });
+    this.debris = P('px', { speed: { min: 60, max: 200 }, lifespan: { min: 250, max: 600 }, scale: { start: 2.5, end: 0 }, tint: [0xff5a36, 0xffc94a, 0xffffff] });
+    this.emitters = [this.sparks, this.goo, this.dust, this.smoke, this.debris];
+
+    // UI
+    this.score = this.add.text(8, 6, 'ABATES 000', { fontFamily: 'KPixel', fontSize: '16px', color: '#f4ede0', stroke: '#16112a', strokeThickness: 4 })
+      .setScrollFactor(0).setDepth(20000).setOrigin(0, 0);
+
+    // input
+    this.keys = this.input.keyboard.addKeys('W,A,S,D');
+    this.input.keyboard.on('keydown', (e) => { if ('wasdWASD'.includes(e.key)) this.lastInput = this.time.now; });
+    this.input.on('pointermove', () => this.lastInput = this.time.now);
+    this.input.on('pointerdown', () => this.lastInput = this.time.now);
+    this.input.mouse && this.input.mouse.disableContextMenu();
+  }
+
+  makeTextures(){
+    const g = this.make.graphics({ x: 0, y: 0 }, false);
+    g.fillStyle(0xffffff).fillRect(0, 0, 1, 1).generateTexture('px', 1, 1).clear();
+    g.fillStyle(0xfff3a8).fillRect(0, 0, 2, 2).generateTexture('b_small', 2, 2).clear();
+    g.fillStyle(0xffc94a).fillRoundedRect(0, 0, 8, 4, 2).fillStyle(0xffffff).fillRect(3, 1, 4, 2).generateTexture('b_big', 8, 4).clear();
+    g.fillStyle(0x2a2238).fillRect(0, 1, 10, 3).fillStyle(0x5a4f73).fillRect(1, 1, 7, 1).fillStyle(0x2a2238).fillRect(2, 3, 2, 3).generateTexture('gun', 10, 6).clear();
+    g.fillStyle(0xffffff).fillCircle(6, 6, 6).fillStyle(0xfff1a8).fillCircle(10, 6, 4).generateTexture('muzzle', 15, 12).clear();
+    g.fillStyle(0xb8862a).fillRect(0, 0, 3, 2).fillStyle(0xe8c070).fillRect(0, 0, 1, 1).generateTexture('shell', 3, 2).clear();
+    g.fillStyle(0xffffff).fillCircle(8, 8, 8).generateTexture('puff', 16, 16).clear();
+    g.fillStyle(0xffffff).fillCircle(24, 24, 24).generateTexture('blast', 48, 48).clear();
+    g.destroy();
+  }
+
+  placeDecor(){
+    const put = (frame, x, y) => this.add.image(x, y, 'urban', frame).setOrigin(0.5, 1).setDepth(10 + y);
+    const tree = (x, y, orange) => { put(orange ? T(12, 16) : T(9, 16), x, y); put(orange ? T(11, 16) : T(8, 16), x, y - 16); };
+    for (let x = 24; x < WW; x += 64) tree(x, 34, (x / 64 | 0) % 3 === 1);
+    for (let x = 56; x < WW; x += 96) tree(x, WH - 2, (x / 96 | 0) % 2 === 0);
+    const props = [T(10, 3), T(11, 3), T(10, 9), T(10, 10), T(9, 8), T(11, 8)];
+    for (let y = 70; y < WH - 30; y += 46) {
+      put(props[(y / 46 | 0) % props.length], 10, y);
+      put(props[(y / 46 + 3 | 0) % props.length], WW - 10, y);
+    }
+  }
+
+  clearFloor(){ this.decals.clear(); this.shells.forEach(s => s.sprite.destroy()); this.shells = []; }
+
+  reset(){
+    this.enemies.forEach(e => e.sprite.destroy()); this.enemies = [];
+    this.bullets.forEach(b => b.sprite.destroy()); this.bullets = [];
+    this.texts.forEach(t => t.o.destroy()); this.texts = [];
+    this.clearFloor(); this.kills = 0; this.score.setText('ABATES 000');
+    this.P.x = WW / 2; this.P.y = WH / 2; this.cam.x = this.P.x; this.cam.y = this.P.y; this.trauma = 0;
+  }
+
+  setFrozen(f){
+    if (this._frozen === f) return; this._frozen = f;
+    this.tweens.timeScale = f ? 0 : 1;
+    this.emitters.forEach(e => e.timeScale = f ? 0 : 1);
+  }
+  hitstop(ms){ if (J.hitstop) this.freeze = Math.max(this.freeze, ms); }
+  addTrauma(v){ if (J.shake) this.trauma = Math.min(1, this.trauma + v); }
+
+  update(time, delta){
+    const dt = Math.min(delta, 50) / 1000;
+    if (this.freeze > 0) { this.freeze -= delta; this.setFrozen(true); this.updateCamera(dt); return; }
+    this.setFrozen(false);
+    this.updatePlayer(dt, time);
+    this.updateBullets(dt);
+    this.updateEnemies(dt, time);
+    this.updateShells(dt);
+    this.updateTexts(dt);
+    this.spawn(dt);
+    this.updateCamera(dt);
+    if (this.muzzleT > 0) { this.muzzleT -= delta; if (this.muzzleT <= 0) this.muzzle.setVisible(false); }
+  }
+
+  /* ---------- jogador ---------- */
+  updatePlayer(dt, time){
+    const P = this.P;
+    const manual = STATE.mode !== 'bg' && time - this.lastInput < 3000;
+    document.getElementById('auto').classList.toggle('on', !manual);
+    this.score.setVisible(STATE.mode !== 'bg');
+    let mx = 0, my = 0, firing = false;
+    const near = this.nearest(P.x, P.y);
+    if (manual) {
+      mx = (this.keys.D.isDown ? 1 : 0) - (this.keys.A.isDown ? 1 : 0);
+      my = (this.keys.S.isDown ? 1 : 0) - (this.keys.W.isDown ? 1 : 0);
+      const p = this.input.activePointer;
+      const wx = p.x + this.cameras.main.scrollX, wy = p.y + this.cameras.main.scrollY;
+      P.aim = Math.atan2(wy - (P.y - 6), wx - P.x);
+      firing = p.isDown;
+    } else if (near) {
+      const dx = near.x - P.x, dy = near.y - P.y, d = Math.hypot(dx, dy) || 1;
+      const target = Math.atan2(dy, dx);
+      let da = Phaser.Math.Angle.Wrap(target - P.aim); P.aim += da * Math.min(1, dt * 10);
+      // anda de lado, foge se perto, puxa para o centro
+      const side = Math.sin(time / 2200) > 0 ? 1 : -1;
+      mx = -dy / d * side * 0.8; my = dx / d * side * 0.8;
+      if (d < 70) { mx -= dx / d; my -= dy / d; }
+      mx += (WW / 2 - P.x) / 260; my += (WH / 2 - P.y) / 260;
+      firing = d < 230 && Math.abs(da) < 0.5;
+    }
+    const len = Math.hypot(mx, my); if (len > 1) { mx /= len; my /= len; }
+    P.moving = len > 0.15;
+    const SPEED = 92;
+    P.x += (mx * SPEED + P.kx) * dt; P.y += (my * SPEED + P.ky) * dt;
+    const fr = Math.exp(-10 * dt); P.kx *= fr; P.ky *= fr;
+    P.x = Phaser.Math.Clamp(P.x, 24, WW - 24); P.y = Phaser.Math.Clamp(P.y, 52, WH - 22);
+    P.cd -= dt * 1000; P.inv -= dt * 1000; P.flash -= dt * 1000;
+    P.recoil += (0 - P.recoil) * Math.min(1, dt * 18);
+
+    // sprite
+    const left = Math.cos(P.aim) < 0;
+    if (J.anim) {
+      if (P.moving) P.walkT += dt * 1000;
+      const q = P.moving ? CICLO[(P.walkT / 110 | 0) % 4] : 0;
+      P.sprite.setFrame(CH(0, q, left ? 0 : 3));
+    } else P.sprite.setFrame(CH(0, 0, 1));
+    let sx = 1, sy = 1;
+    if (J.squash && P.moving) { const b = Math.abs(Math.sin(P.walkT / 70)); sy = 1 + b * 0.08; sx = 1 - b * 0.05; }
+    P.sprite.setPosition(Math.round(P.x), Math.round(P.y + 8)).setScale(sx, sy).setDepth(10 + P.y + 8);
+    if (P.flash > 0) P.sprite.setTintFill(0xffffff); else if (P.inv > 0 && J.flash) P.sprite.setTint(0xff9a8a); else P.sprite.clearTint();
+    if (P.inv > 0 && !J.flash) P.sprite.setAlpha((P.inv / 80 | 0) % 2 ? 0.5 : 1); else P.sprite.setAlpha(1);
+
+    const cx = Math.cos(P.aim), cy = Math.sin(P.aim);
+    const back = J.kick ? P.recoil : 0;
+    P.gun.setPosition(P.x + cx * (5 - back), P.y + 1 + cy * (5 - back)).setRotation(P.aim).setFlipY(left)
+      .setDepth(10 + P.y + 8 + (cy < -0.3 ? -1 : 1));
+
+    if (firing && P.cd <= 0) this.shoot();
+  }
+
+  shoot(){
+    const P = this.P;
+    P.cd = J.fire ? 90 : 280;
+    const ang = P.aim + (J.fire ? rand(-0.12, 0.12) : 0);
+    const cx = Math.cos(ang), cy = Math.sin(ang);
+    const tipX = P.x + Math.cos(P.aim) * 14, tipY = P.y + 1 + Math.sin(P.aim) * 14;
+    const big = !!J.bullets, spd = big ? 340 : 160;
+    const s = this.add.image(tipX, tipY, big ? 'b_big' : 'b_small').setRotation(ang).setDepth(7000);
+    if (J.squash && big) s.setScale(1.5, 0.8);
+    this.bullets.push({ x: tipX, y: tipY, vx: cx * spd, vy: cy * spd, ang, sprite: s });
+
+    if (J.muzzle) {
+      this.muzzle.setPosition(tipX + cx * 3, tipY + cy * 3).setRotation(P.aim).setScale(rand(0.7, 1.2)).setVisible(true);
+      this.muzzleT = 45;
+    }
+    if (J.kick) { P.recoil = 3; P.kx -= cx * 40; P.ky -= cy * 40; this.cam.kx -= cx * 4; this.cam.ky -= cy * 4; }
+    this.addTrauma(J.fire ? 0.05 : 0.08);
+    if (J.perm) {
+      const sh = this.add.image(P.x, P.y, 'shell').setDepth(7500);
+      const side = Math.cos(P.aim) < 0 ? 1 : -1;
+      this.shells.push({ x: P.x, y: P.y, vx: -cy * 60 * side - cx * 20 + rand(-15, 15), vy: cx * 60 * side - cy * 20 - 30, z: 0, vz: 70, vr: rand(-20, 20), sprite: sh });
+    }
+    if (J.sound) {
+      if (J.bass) { SFX.play('shot', 0.72 * rand(0.9, 1.1), 0.55); SFX.thump(140, 45, 0.12, 0.35); }
+      else SFX.play('shot', 1, 0.45);
+    }
+  }
+
+  /* ---------- balas ---------- */
+  updateBullets(dt){
+    for (let i = this.bullets.length - 1; i >= 0; i--) {
+      const b = this.bullets[i];
+      b.x += b.vx * dt; b.y += b.vy * dt; b.sprite.setPosition(b.x, b.y);
+      let dead = false;
+      if (b.x < 4 || b.x > WW - 4 || b.y < 20 || b.y > WH - 4) {
+        dead = true;
+        if (J.impact) { this.dust.setEmitterAngle({ min: 0, max: 360 }); this.dust.explode(4, b.x, b.y); this.sparks.setEmitterAngle({ min: 0, max: 360 }); this.sparks.explode(2, b.x, b.y); }
+      } else {
+        for (const e of this.enemies) {
+          if (e.dying) continue;
+          if (Math.abs(e.x - b.x) < 7 && Math.abs(e.y - b.y) < 9) { this.hitEnemy(e, b); dead = true; break; }
+        }
+      }
+      if (dead) { b.sprite.destroy(); this.bullets.splice(i, 1); }
+    }
+  }
+
+  /* ---------- inimigos ---------- */
+  spawn(dt){
+    this.spawnT -= dt * 1000;
+    const max = J.fire ? 10 : 7;
+    if (this.spawnT > 0 || this.enemies.length >= max) return;
+    this.spawnT = 650;
+    let x, y, tries = 0;
+    do { x = rand(40, WW - 40); y = rand(60, WH - 30); tries++; } while (Math.hypot(x - this.P.x, y - this.P.y) < 170 && tries < 30);
+    const who = Math.random() < 0.5 ? 4 : 3;
+    const tint = ZTINTS[(Math.random() * ZTINTS.length) | 0];
+    const e = { x, y, kx: 0, ky: 0, hp: J.sponge ? 12 : 3, who, tint, flash: 0, walkT: rand(0, 500), spd: rand(24, 36), sx: 1, sy: 1, pop: 1,
+      sprite: this.add.sprite(x, y + 8, 'urban', CH(who, 0, 1)).setOrigin(0.5, 1).setTint(tint) };
+    if (J.squash) { e.pop = 0; this.tweens.add({ targets: e, pop: 1, duration: 320, ease: 'Back.Out' }); }
+    this.enemies.push(e);
+  }
+
+  hitEnemy(e, b){
+    e.hp -= 1;
+    const cx = Math.cos(b.ang), cy = Math.sin(b.ang);
+    if (J.flash) e.flash = 60;
+    if (J.knock) { e.kx += cx * 110; e.ky += cy * 110; }
+    if (J.squash) { e.sx = 1.45; e.vs = 0; }
+    if (J.impact) {
+      const deg = Phaser.Math.RadToDeg(b.ang);
+      this.sparks.setEmitterAngle({ min: deg - 35, max: deg + 35 }); this.sparks.explode(6, b.x, b.y);
+      this.goo.setEmitterAngle({ min: deg - 50, max: deg + 50 }); this.goo.explode(4, b.x, b.y);
+    }
+    if (J.perm && Math.random() < 0.5) this.splat(e.x + cx * 6, e.y + cy * 6, 2, 4);
+    if (J.sound) { if (J.bass) SFX.play('hit', 0.8 * rand(0.9, 1.12), 0.6); else SFX.play('hit', 1, 0.5); }
+    this.addTrauma(0.06);
+    if (e.hp <= 0) this.killEnemy(e, b.ang);
+    else this.hitstop(J.hitstop ? 16 : 0);
+  }
+
+  killEnemy(e, ang){
+    e.dying = true;
+    const i = this.enemies.indexOf(e); if (i >= 0) this.enemies.splice(i, 1);
+    this.kills++;
+    this.score.setText('ABATES ' + String(this.kills).padStart(3, '0'));
+    this.hitstop(50);
+    this.addTrauma(J.boom ? 0.45 : 0.3);
+    if (J.perm) {
+      this.splat(e.x, e.y, 6, 7);
+      this.decals.stamp('urban', CH(e.who, 0, Math.cos(ang) < 0 ? 3 : 0), e.x + Math.cos(ang) * 6, e.y + 4 + Math.sin(ang) * 6,
+        { angle: Math.cos(ang) < 0 ? -90 : 90, tint: 0xa8d49a, originX: 0.5, originY: 0.5 });
+    }
+    if (J.impact) { this.goo.setEmitterAngle({ min: 0, max: 360 }); this.goo.explode(10, e.x, e.y); }
+    if (J.boom) {
+      const bl = this.add.image(e.x, e.y, 'blast').setDepth(8500).setScale(0.3).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({ targets: bl, scale: 1.8, alpha: 0, duration: 220, ease: 'Quad.Out', onComplete: () => bl.destroy() });
+      this.smoke.setEmitterAngle({ min: 0, max: 360 }); this.smoke.explode(10, e.x, e.y);
+      this.debris.setEmitterAngle({ min: 0, max: 360 }); this.debris.explode(14, e.x, e.y);
+    }
+    if (J.sound) {
+      if (J.bass) { SFX.play('die', 0.7 * rand(0.92, 1.08), 0.8); SFX.thump(J.boom ? 110 : 90, 30, J.boom ? 0.4 : 0.25, 0.7); }
+      else SFX.play('die', 1, 0.5);
+    }
+    if (J.ui) {
+      this.tweens.killTweensOf(this.score);
+      this.score.setScale(1.6).setColor('#ffc94a');
+      this.tweens.add({ targets: this.score, scale: 1, duration: 260, ease: 'Back.Out', onComplete: () => this.score.setColor('#f4ede0') });
+      const t = this.add.text(e.x, e.y - 12, '+1', { fontFamily: 'KPixel', fontSize: '16px', color: '#ffc94a', stroke: '#16112a', strokeThickness: 4 }).setOrigin(0.5).setDepth(9500).setScale(0.4);
+      this.tweens.add({ targets: t, scale: 1, duration: 200, ease: 'Back.Out' });
+      this.texts.push({ o: t, life: 650 });
+    }
+    e.sprite.destroy();
+  }
+
+  splat(x, y, n, r){
+    const g = this.gfx; g.clear();
+    const cols = [0x5d9a4a, 0x4a8040, 0x76b85c];
+    for (let i = 0; i < n; i++) { g.fillStyle(cols[i % 3], 0.85); g.fillCircle(Math.round(x + rand(-r, r)), Math.round(y + rand(-r, r) * 0.6), Math.round(rand(1, r * 0.55))); }
+    this.decals.draw(g);
+  }
+
+  hurtPlayer(e){
+    const P = this.P; if (P.inv > 0) return;
+    P.inv = 700;
+    const dx = P.x - e.x, dy = P.y - e.y, d = Math.hypot(dx, dy) || 1;
+    if (J.flash) P.flash = 80;
+    if (J.kick || J.knock) { P.kx += dx / d * 160; P.ky += dy / d * 160; }
+    this.hitstop(90); this.addTrauma(0.6);
+    if (J.sound) { if (J.bass) { SFX.play('hurt', 0.75, 0.8); SFX.thump(80, 30, 0.3, 0.6); } else SFX.play('hurt', 1, 0.5); }
+    if (J.ui) { const h = document.getElementById('hurt'); h.classList.add('on'); setTimeout(() => h.classList.remove('on'), 90); }
+  }
+
+  updateEnemies(dt, time){
+    const P = this.P;
+    for (const e of this.enemies) {
+      const dx = P.x - e.x, dy = P.y - e.y, d = Math.hypot(dx, dy) || 1;
+      let vx = dx / d * e.spd, vy = dy / d * e.spd;
+      for (const o of this.enemies) {          // separação simples
+        if (o === e) continue;
+        const ox = e.x - o.x, oy = e.y - o.y, od = Math.hypot(ox, oy);
+        if (od > 0 && od < 13) { vx += ox / od * 30; vy += oy / od * 30; }
+      }
+      e.x += (vx + e.kx) * dt; e.y += (vy + e.ky) * dt;
+      const fr = Math.exp(-10 * dt); e.kx *= fr; e.ky *= fr;
+      e.x = Phaser.Math.Clamp(e.x, 16, WW - 16); e.y = Phaser.Math.Clamp(e.y, 40, WH - 16);
+      if (d < 11) { this.hurtPlayer(e); e.kx -= dx / d * 140; e.ky -= dy / d * 140; }
+      e.flash -= dt * 1000;
+      e.walkT += dt * 1000;
+      if (J.anim) e.sprite.setFrame(CH(e.who, CICLO[(e.walkT / 160 | 0) % 4], dx < 0 ? 0 : 3));
+      else e.sprite.setFrame(CH(e.who, 0, 1));
+      if (e.flash > 0) e.sprite.setTintFill(0xffffff); else e.sprite.setTint(e.tint);
+      e.vs = (e.vs || 0) + (-300 * (e.sx - 1) - 12 * (e.vs || 0)) * dt; e.sx += e.vs * dt; e.sy = 1 / e.sx;
+      if (!J.squash) { e.sx = e.sy = 1; e.vs = 0; }
+      e.sprite.setPosition(Math.round(e.x), Math.round(e.y + 8)).setScale(e.sx * e.pop, e.sy * e.pop).setDepth(10 + e.y + 8);
+    }
+  }
+
+  updateShells(dt){
+    for (const s of this.shells) {
+      if (s.done) continue;
+      s.vz -= 380 * dt; s.z += s.vz * dt;
+      s.x += s.vx * dt; s.y += s.vy * dt + 0;
+      s.vx *= Math.exp(-3 * dt); s.vy *= Math.exp(-3 * dt);
+      if (s.z <= 0) { s.z = 0; s.vz = -s.vz * 0.35; s.vx *= 0.6; s.vy *= 0.6; s.vr *= 0.5; if (Math.abs(s.vz) < 12) s.done = true; }
+      s.sprite.setPosition(s.x, s.y + 8 - s.z).rotation += s.vr * dt;
+      if (s.done) { this.decals.stamp('shell', null, s.x, s.y + 8, { angle: Phaser.Math.RadToDeg(s.sprite.rotation) }); s.sprite.destroy(); }
+    }
+    this.shells = this.shells.filter(s => !s.done);
+  }
+
+  updateTexts(dt){
+    for (const t of this.texts) { t.life -= dt * 1000; t.o.y -= 22 * dt; if (t.life < 200) t.o.setAlpha(t.life / 200); }
+    this.texts = this.texts.filter(t => { if (t.life <= 0) { t.o.destroy(); return false; } return true; });
+  }
+
+  nearest(x, y){
+    let best = null, bd = 1e9;
+    for (const e of this.enemies) { const d = Math.hypot(e.x - x, e.y - y); if (d < bd) { bd = d; best = e; } }
+    return best;
+  }
+
+  /* ---------- câmera ---------- */
+  updateCamera(dt){
+    const P = this.P, C = this.cam;
+    if (J.camera) {
+      const tx = P.x + Math.cos(P.aim) * 40, ty = P.y + Math.sin(P.aim) * 26;
+      const k = 1 - Math.exp(-6 * dt);
+      C.x += (tx - C.x) * k; C.y += (ty - C.y) * k;
+    } else { C.x = P.x; C.y = P.y; }
+    const kf = Math.exp(-14 * dt); C.kx *= kf; C.ky *= kf;
+    let sx = 0, sy = 0;
+    if (this.trauma > 0) {
+      const s = this.trauma * this.trauma;
+      const nt = this.time.now / 1000 * 25;
+      sx = 9 * s * ruido(nt, 0); sy = 9 * s * ruido(nt, 1);
+      this.trauma = Math.max(0, this.trauma - dt * 1.6);
+    }
+    if (!J.shake) this.trauma = 0;
+    let x = C.x - VW / 2, y = C.y - VH / 2;
+    x = Phaser.Math.Clamp(x, 0, WW - VW); y = Phaser.Math.Clamp(y, 0, WH - VH);
+    this.cameras.main.setScroll(Math.round(x + sx + (J.kick ? C.kx : 0)), Math.round(y + sy + (J.kick ? C.ky : 0)));
+  }
+}
+
+
+/* =========================================================
+   PLATAFORMA (parte 2)
+   ========================================================= */
+/*PLAT_JS*/
+const EVLABEL = {
+  coyote: v => ['coyote +' + v + ' ms', '#ffc94a'],
+  buffer: v => ['buffer ' + v + ' ms', '#ffc94a'],
+  corner: v => ['quina ' + (v > 0 ? '+' : '') + v + ' px', '#ffc94a'],
+  bonk: () => ['bonk!', '#ff5a36'],
+  ignored: () => ['pulo ignorado', '#ff5a36'],
+};
+class Plat extends Phaser.Scene {
+  constructor(){ super('plat'); }
+  create(){
+    window.PLAT = this;
+    this.bg = this.add.renderTexture(0, 0, 384, 224).setOrigin(0).setDepth(0);
+    this.trail = this.add.graphics().setDepth(5);
+    this.box = this.add.graphics().setDepth(30);
+    this.flag = this.add.graphics().setDepth(6);
+    this.sprite = this.add.sprite(0, 0, 'urban', CH(0, 0, 3)).setOrigin(0.5, 1).setDepth(20);
+    this.burst = this.add.particles(0, 0, 'px', { emitting: false, speed: { min: 40, max: 150 }, lifespan: { min: 200, max: 500 }, scale: { start: 2.5, end: 0 }, tint: [0xff5a36, 0xffc94a, 0xf4ede0] }).setDepth(40);
+    this.dust = this.add.particles(0, 0, 'puff', { emitting: false, speed: { min: 8, max: 30 }, lifespan: { min: 180, max: 320 }, scale: { start: 0.25, end: 0.6 }, alpha: { start: 0.5, end: 0 }, tint: 0xc9c0dd }).setDepth(19);
+    this.hud = this.add.text(6, 10, '', { fontFamily: 'KPixel', fontSize: '16px', color: '#f4ede0', stroke: '#16112a', strokeThickness: 4 }).setDepth(50).setScrollFactor(0);
+    this.keys = this.input.keyboard.addKeys('A,D,W,K,J,UP,LEFT,H');
+    this.lastInput = -1e9; this.showBox = true;
+    this.input.keyboard.on('keydown', e => {
+      if ('adwkjADWKJ'.includes(e.key) || e.key === 'ArrowUp') { if (this.time.now - this.lastInput > 3000) this.restart(); this.lastInput = this.time.now; }
+      if (e.key === 'h' || e.key === 'H') this.showBox = !this.showBox;
+    });
+    this.cameras.main.setScroll(0, 6);
+    this.texts = [];
+    this.loadScen(STATE.scen || 'coyote');
+  }
+  mapKey(){ return this.scenId === 'context' ? (J.ctxTight ? 'ctxTight' : 'ctxOpen') : this.scenId; }
+  loadScen(id){ this.scenId = id; this.build(); }
+  build(){
+    const key = this.mapKey(); this.loadedKey = key;
+    this.S = SCEN[key]; this.M = parseMap(this.S);
+    const bg = this.bg; bg.clear(); bg.fill(0x1d1636);
+    // janelas de prédio ao fundo
+    for (let y = 1; y < 13; y += 3) for (let x = 1; x < 24; x += 4) bg.drawFrame('urban', T(11, 11 + ((x + y) % 3)), x * 16, y * 16);
+    bg.fill(0x1d1636, 0.82);
+    if (this.S.tight) for (let x = 8; x < 384; x += 24) bg.fill(0x2c2350, 1, x, 112, 6, 64);
+    const M = this.M, solid = (x, y) => tileAt(M, x, y) === '#';
+    const g = this.make.graphics({ x: 0, y: 0 }, false);
+    for (let y = 0; y < M.h; y++) for (let x = 0; x < M.w; x++) {
+      const c = M.t[y][x];
+      if (c === '#') {
+        const u = y > 0 && solid(x, y - 1), d = y < M.h - 1 && solid(x, y + 1), l = x > 0 && solid(x - 1, y), r = x < M.w - 1 && solid(x + 1, y);
+        const row = !u ? 3 : !d ? 5 : 4, col = !l ? 8 : !r ? 10 : 9;
+        bg.drawFrame('urban', T(row, col), x * 16, y * 16);
+      } else if (c === 'v' || c === '^') {
+        g.clear(); g.fillStyle(0xd8d2ea);
+        for (let i = 0; i < 3; i++) {
+          const bx = x * 16 + 2 + i * 4;
+          if (c === 'v') g.fillTriangle(bx, y * 16, bx + 4, y * 16, bx + 2, y * 16 + 9);
+          else g.fillTriangle(bx, y * 16 + 16, bx + 4, y * 16 + 16, bx + 2, y * 16 + 7);
+        }
+        g.fillStyle(0x6b6390).fillRect(x * 16, c === 'v' ? y * 16 : y * 16 + 15, 16, 1);
+        bg.draw(g);
+      }
+    }
+    g.destroy();
+    const f = this.flag; f.clear();
+    if (M.gx !== undefined) { f.fillStyle(0xf4ede0).fillRect(M.gx + 7, M.gy, 2, 16); f.fillStyle(0xff5a36).fillRect(M.gx + 9, M.gy, 7, 5); }
+    this.restart();
+  }
+  restart(){
+    this.p = newPlayer(this.M); this.mem = {}; this.t = 0; this.acc = 0; this.pts = []; this.endT = 0; this.walkT = 0;
+    this.prevJump = false; this.sprite.setVisible(true);
+  }
+  label(txt, color){
+    const p = this.p;
+    const t = this.add.text(p.x + PH.W / 2, p.y - 6, txt, { fontFamily: 'KPixel', fontSize: '16px', color, stroke: '#16112a', strokeThickness: 4 }).setOrigin(0.5, 1).setDepth(60);
+    this.texts.push({ o: t, life: 1100 });
+  }
+  update(time, delta){
+    if (this.mapKey() !== this.loadedKey) this.build();
+    const manual = time - this.lastInput < 3000;
+    document.getElementById('auto').classList.toggle('on', !manual);
+    document.getElementById('auto').textContent = manual ? '' : 'BOT COM TIMING HUMANO · A D W para jogar';
+    for (const t of this.texts) { t.life -= delta; t.o.y -= 14 * delta / 1000; if (t.life < 250) t.o.setAlpha(t.life / 250); }
+    this.texts = this.texts.filter(t => t.life > 0 || (t.o.destroy(), false));
+
+    if (this.endT > 0) { this.endT -= delta; if (this.endT <= 0) this.restart(); this.draw(); return; }
+    this.acc += Math.min(delta, 100) / 1000;
+    while (this.acc >= PH.DT && this.endT <= 0) {
+      this.acc -= PH.DT; this.t += PH.DT;
+      let inp;
+      if (manual) {
+        const k = this.keys, jd = k.W.isDown || k.K.isDown || k.J.isDown || k.UP.isDown;
+        inp = { left: k.A.isDown || k.LEFT.isDown, right: k.D.isDown, held: jd, press: jd && !this.prevJump };
+        this.prevJump = jd;
+      } else inp = this.S.bot(this.p, this.mem);
+      const wasGround = this.p.onGround;
+      stepPlayer(this.M, this.p, inp, J, (e, p, v) => {
+        if (EVLABEL[e]) { const [txt, c] = EVLABEL[e](v); this.label(txt, c); }
+        if (e !== 'ignored' && e !== 'bonk' && e !== 'corner') this.dust.explode(3, p.x + PH.W / 2, p.y + PH.H);
+      });
+      if (!wasGround && this.p.onGround) this.dust.explode(4, this.p.x + PH.W / 2, this.p.y + PH.H);
+      if (Math.abs(this.p.vx) > 1 && this.p.onGround) this.walkT += PH.DT * 1000;
+      this.pts.push({ x: this.p.x + PH.W / 2, y: this.p.y + PH.H / 2, half: this.p.half });
+      if (this.pts.length > 90) this.pts.shift();
+      if (this.p.dead) {
+        this.burst.explode(16, this.p.x + PH.W / 2, Math.min(this.p.y + PH.H / 2, 214));
+        this.sprite.setVisible(false);
+        const msg = this.p.dead === 'spike' ? 'espinho!' : 'caiu!';
+        this.label(msg, '#ff5a36'); this.texts[this.texts.length - 1].o.setPosition(Math.min(Math.max(this.p.x, 30), 354), Math.min(this.p.y, 200));
+        this.endT = 900;
+      } else if (this.p.won) { this.label('chegou!', '#8fdc72'); this.endT = 900; }
+      else if (!manual && this.t > 4) this.endT = 300;
+    }
+    this.draw();
+  }
+  draw(){
+    const p = this.p;
+    const left = p.vx < -1 || (Math.abs(p.vx) <= 1 && this.sprite.frame && this._left);
+    if (p.vx < -1) this._left = true; else if (p.vx > 1) this._left = false;
+    const col = this._left ? 0 : 3;
+    let row = 0;
+    if (!p.onGround) row = 1; else if (Math.abs(p.vx) > 1) row = CICLO[(this.walkT / 100 | 0) % 4];
+    this.sprite.setFrame(J.metaCrate ? T(10, 3) : CH(0, row, col)).setPosition(Math.round(p.x + PH.W / 2), Math.round(p.y + PH.H + 1));
+    const tr = this.trail; tr.clear();
+    this.pts.forEach((q, i) => { tr.fillStyle(q.half ? 0xffc94a : 0x8a7fb0, (i / this.pts.length) * 0.9); tr.fillRect(Math.round(q.x) - 1, Math.round(q.y) - 1, q.half ? 3 : 2, q.half ? 3 : 2); });
+    const b = this.box; b.clear();
+    if (this.showBox && this.sprite.visible) { b.lineStyle(1, 0x8fdc72, 0.9).strokeRect(p.x + 0.5, p.y + 0.5, PH.W - 1, PH.H - 1); }
+    this.hud.setText('TESTE: ' + ({ coyote: 'sair da borda', buffer: 'pousar e pular', corner: 'buraco no teto', varjump: 'pulinho e pulão', halfgrav: 'vão longo', context: J.ctxTight ? 'corredor apertado' : 'campo aberto', meta: 'mesma física' }[this.scenId] || '').toUpperCase());
+  }
+}
+/* =========================================================
+   APRESENTAÇÃO
+   ========================================================= */
+const stage = document.getElementById('stage');
+const dock = document.getElementById('dock');
+const slides = [...document.querySelectorAll('.slide')];
+let cur = 0, game = null;
+
+function fit(){
+  const vw = document.getElementById('viewport').clientWidth, vh = document.getElementById('viewport').clientHeight;
+  const s = Math.min(vw / 1280, vh / 720);
+  stage.style.transform = `scale(${s}) translate(-50%, -50%)`;
+  stage.style.transformOrigin = '0 0';
+  refreshGame();
+}
+function refreshGame(){ if (game && game.scale) game.scale.refresh(); }
+window.addEventListener('resize', fit);
+dock.addEventListener('transitionend', refreshGame);
+
+function go(i){
+  i = Math.max(0, Math.min(slides.length - 1, i));
+  slides[cur].classList.remove('active');
+  cur = i;
+  const s = slides[cur];
+  s.classList.add('active');
+  document.getElementById('count').textContent = `${cur + 1} / ${slides.length}`;
+  document.getElementById('progress').style.width = `${(cur + 1) / slides.length * 100}%`;
+  try { history.replaceState(null, '', '#s' + (cur + 1)); } catch (e) {}
+
+  const mode = s.dataset.game || 'off';
+  STATE.set = s.dataset.set || 'juice';
+  STATE.scen = s.dataset.scen || null;
+  dock.className = 'g-' + mode + ' set-' + STATE.set;
+  STATE.mode = mode;
+  STATE.overrides = {}; STATE.allOff = false;
+  STATE.only = s.dataset.only === '1';
+  STATE.extra = (s.dataset.extra || '').split(',').filter(Boolean);
+  if (mode === 'bg') { STATE.forceAll = true; STATE.level = TECH.length; }
+  else if (mode === 'center') { STATE.forceAll = true; STATE.level = TECH.length; abSync(true); }
+  else if (mode === 'panel') { STATE.forceAll = false; STATE.level = +s.dataset.level; }
+  recomputeJuice();
+  if (game) {
+    if (mode === 'off') game.loop.sleep(); else game.loop.wake();
+    if (window.ARENA && s.dataset.level === '0' && STATE.set === 'juice') ARENA.reset();
+    applyScene();
+  }
+  if (BLOB) { if (s.classList.contains('s-blob')) BLOB.start(); else BLOB.stop(); }
+  setTimeout(refreshGame, 650);
+}
+function applyScene(){
+  if (!game || !game.scene.getScene('arena')) return;
+  const sm = game.scene, want = STATE.scen ? 'plat' : 'arena', other = want === 'plat' ? 'arena' : 'plat';
+  if (sm.isActive(other)) sm.sleep(other);
+  if (!sm.isActive(want)) sm.run(want);
+  if (want === 'arena') document.getElementById('auto').textContent = 'DEMO AUTOMÁTICA · mexa o mouse ou WASD';
+  if (want === 'plat' && window.PLAT && PLAT.scenId) { if (PLAT.scenId !== STATE.scen) PLAT.loadScen(STATE.scen); else PLAT.restart(); }
+}
+
+const abBtn = document.getElementById('abBtn');
+function abSync(on){ STATE.allOff = !on; abBtn.textContent = on ? 'MOLHO: LIGADO' : 'MOLHO: DESLIGADO'; abBtn.classList.toggle('off', !on); }
+abBtn.addEventListener('click', () => { abSync(STATE.allOff); recomputeJuice(); });
+
+document.getElementById('prev').addEventListener('click', () => go(cur - 1));
+document.getElementById('next').addEventListener('click', () => go(cur + 1));
+
+window.addEventListener('keydown', (e) => {
+  SFX.init();
+  if (e.target && e.target.closest && e.target.closest('input,textarea')) return;
+  const k = e.key;
+  if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(k)) { e.preventDefault(); go(cur + 1); }
+  else if (['ArrowLeft', 'PageUp', 'Backspace'].includes(k)) { e.preventDefault(); go(cur - 1); }
+  else if (k === 'Home') go(0);
+  else if (k === 'End') go(slides.length - 1);
+  else if (k === 'f' || k === 'F') {
+    try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => {}); } catch (_) {}
+  }
+  else if (k === 'm' || k === 'M') SFX.muted = !SFX.muted;
+  else if ((k === 'r' || k === 'R') && window.ARENA) ARENA.clearFloor();
+  else if (k === 't' || k === 'T') {
+    if (STATE.mode === 'panel' && STATE.level > 0) { const id = curList()[STATE.level - 1].id; STATE.overrides[id] = !itemOn[id]; STATE.allOff = false; recomputeJuice(); }
+    else if (STATE.mode === 'center') { abSync(STATE.allOff); recomputeJuice(); }
+  }
+  else if (k === '0') {
+    if (STATE.mode === 'center') abSync(STATE.allOff); else STATE.allOff = !STATE.allOff;
+    recomputeJuice();
+  }
+});
+// toque: deslizar troca slide
+let tx0 = null;
+stage.addEventListener('touchstart', e => { tx0 = e.touches[0].clientX; }, { passive: true });
+stage.addEventListener('touchend', e => { if (tx0 == null) return; const dx = e.changedTouches[0].clientX - tx0; if (Math.abs(dx) > 50) go(cur + (dx < 0 ? 1 : -1)); tx0 = null; });
+
+const startBtn = document.getElementById('start');
+startBtn.addEventListener('click', () => { SFX.init(); startBtn.hidden = true; });
+window.addEventListener('pointerdown', () => SFX.init());
+window.addEventListener('keydown', () => { startBtn.hidden = true; }, { once: true });
+
+/* =========================================================
+   SLIDE 6: bola de pedra × bola de tinta (mesma física)
+   ========================================================= */
+const BLOB = (() => {
+  const cv = document.getElementById('blobCanvas'); if (!cv) return null;
+  const ctx = cv.getContext('2d');
+  const PW = 290, PH2 = 128, FLOOR = 114, R = 13, L = 10, Rw = PW - 10;
+  let b, sq = 0, sqV = 0, axis = 'y', splats = [], drops = [], running = false, last = 0;
+  const reset = () => { b = { x: 40, y: 40, vx: 115, vy: 0, rot: 0 }; splats = []; drops = []; sq = 0; sqV = 0; };
+  reset();
+  function impact(ax, v, cx, cy){
+    axis = ax; sq = Math.min(0.5, Math.abs(v) / 800); sqV = 0;
+    const n = 5 + (Math.abs(v) / 80 | 0);
+    for (let i = 0; i < n; i++) {
+      const a = ax === 'y' ? -Math.PI / 2 + (Math.random() - 0.5) * 2.2 : (cx < PW / 2 ? 0 : Math.PI) + (Math.random() - 0.5) * 2;
+      const sp = 60 + Math.random() * Math.abs(v) * 0.35;
+      drops.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 1 + Math.random() * 1.8 });
+    }
+    if (ax === 'y') splats.push({ kind: 'f', x: cx, w: 8 + Math.abs(v) / 30, t: 0 });
+    else splats.push({ kind: 'w', x: cx < PW / 2 ? L : Rw, y: cy, h: 6 + Math.abs(v) / 25, t: 0 });
+  }
+  function step(dt){
+    b.vy += 700 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += b.vx * dt / R;
+    if (b.y + R >= FLOOR && b.vy > 0) { b.y = FLOOR - R; const v = b.vy; b.vy = -b.vy * 0.78; if (Math.abs(b.vy) < 150) b.vy = -340; impact('y', v, b.x, FLOOR); }
+    if (b.x - R < L && b.vx < 0) { b.x = L + R; impact('x', b.vx, L, b.y); b.vx = -b.vx; }
+    if (b.x + R > Rw && b.vx > 0) { b.x = Rw - R; impact('x', b.vx, Rw, b.y); b.vx = -b.vx; }
+    // mola do squash
+    const k = 520, c = 13; sqV += (-k * sq - c * sqV) * dt; sq += sqV * dt;
+    for (const d of drops) { d.vy += 700 * dt; d.x += d.vx * dt; d.y += d.vy * dt; if (d.y >= FLOOR) { d.dead = true; splats.push({ kind: 'f', x: d.x, w: d.r * 2.5, t: 0 }); } if (d.x < L || d.x > Rw) d.dead = true; }
+    drops = drops.filter(d => !d.dead);
+    for (const sp of splats) sp.t += dt;
+    splats = splats.filter(sp => sp.t < 9).slice(-70);
+  }
+  function panel(ox, paint){
+    ctx.save(); ctx.translate(ox, 0);
+    ctx.fillStyle = '#211936'; ctx.fillRect(0, 0, PW, PH2);
+    ctx.fillStyle = '#3a2e5c'; ctx.fillRect(0, FLOOR, PW, PH2 - FLOOR); ctx.fillRect(0, 0, L, FLOOR); ctx.fillRect(Rw, 0, PW - Rw, FLOOR);
+    if (paint) {
+      for (const sp of splats) {
+        ctx.globalAlpha = Math.max(0, Math.min(1, (9 - sp.t) / 2));
+        ctx.fillStyle = '#d9432a';
+        ctx.beginPath();
+        if (sp.kind === 'f') ctx.ellipse(sp.x, FLOOR + 1, sp.w / 2, 2.5, 0, 0, Math.PI * 2);
+        else ctx.ellipse(sp.x, sp.y, 2.5, sp.h / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1; ctx.fillStyle = '#ff5a36';
+      for (const d of drops) { ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill(); }
+      // deformação
+      let rx = R, ry = R, rot = 0, cx = b.x, cy = b.y;
+      if (Math.abs(sq) > 0.015) {
+        const s2 = sq;
+        if (axis === 'y') { rx = R * (1 + s2); ry = R * (1 - s2); if (b.y > FLOOR - R - 6) cy = FLOOR - ry; }
+        else { rx = R * (1 - s2); ry = R * (1 + s2); if (b.x < L + R + 6) cx = L + rx; if (b.x > Rw - R - 6) cx = Rw - rx; }
+      } else {
+        const sp = Math.hypot(b.vx, b.vy), st = Math.min(0.32, sp / 1300);
+        rx = R * (1 + st); ry = R * (1 - st * 0.6); rot = Math.atan2(b.vy, b.vx);
+      }
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot);
+      ctx.fillStyle = '#ff5a36'; ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = '#ffb199'; ctx.beginPath(); ctx.ellipse(cx - rx * 0.35, cy - ry * 0.4, rx * 0.28, ry * 0.2, -0.5, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
+      ctx.fillStyle = '#8b879b'; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#5f5a73';
+      [[4, -5, 2.5], [-6, 2, 2], [2, 6, 1.6], [-2, -8, 1.4], [8, 3, 1.5]].forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); });
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+  function frame(t){
+    if (!running) return;
+    const dt = Math.min(0.033, (t - (last || t)) / 1000); last = t;
+    step(dt);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    panel(0, false); panel(PW + 4, true);
+    requestAnimationFrame(frame);
+  }
+  return {
+    start(){ if (running) return; running = true; last = 0; reset(); requestAnimationFrame(frame); },
+    stop(){ running = false; },
+  };
+})();
+
+/* boot: fontes + spritesheet, depois Phaser */
+function loadImage(src){ return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; }); }
+const m = /^#s(\d+)$/.exec(location.hash || '');
+fit();
+go(m ? +m[1] - 1 : 0);
+Promise.all([
+  loadImage('data:image/png;base64,' + ASSETS.sheet),
+  document.fonts ? Promise.all([document.fonts.load('16px KPixel'), document.fonts.load('16px KMini')]).catch(() => {}) : Promise.resolve()
+]).then(([sheet]) => {
+  game = new Phaser.Game({
+    type: Phaser.AUTO, parent: 'game', width: VW, height: VH, pixelArt: true, roundPixels: true,
+    backgroundColor: '#16112a', banner: false, audio: { noAudio: true },
+    scale: { mode: Phaser.Scale.NONE },
+    scene: class Boot extends Phaser.Scene {
+      constructor(){ super('boot'); }
+      create(){
+        this.textures.addSpriteSheet('urban', sheet, { frameWidth: 16, frameHeight: 16 });
+        this.scene.add('arena', Arena, true);
+        this.scene.add('plat', Plat, false);
+        setTimeout(() => { applyScene(); refreshGame(); if ((slides[cur].dataset.game || 'off') === 'off') game.loop.sleep(); }, 50);
+      }
+    }
+  });
+});
+</script>
