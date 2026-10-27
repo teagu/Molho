@@ -16,6 +16,7 @@ body = (ROOT / 'src' / 'deck.html').read_text(encoding='utf-8')
 body = body.replace('{{FONT_MINI}}', b64(A / 'fonts' / 'Kenney_Mini_Square.ttf'))
 body = body.replace('{{FONT_PIXEL}}', b64(A / 'fonts' / 'Kenney_Pixel.ttf'))
 body = body.replace('{{ASSETS_JSON}}', json.dumps(assets))
+body = body.replace('{{QR_PNG}}', b64(ROOT / 'docs' / 'qrcode.png'))
 body = body.replace('/*PLAT_JS*/', (ROOT / 'src' / 'plat.js').read_text(encoding='utf-8'))
 
 (ROOT / 'dist').mkdir(exist_ok=True)

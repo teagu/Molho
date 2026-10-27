@@ -151,8 +151,11 @@ pre.code .c{color:#7f74a3}.code .t{color:#c3a6ff}.code .t{color:#c3a6ff}.code .n
 .refs a:focus-visible{outline:2px solid var(--fg)}
 
 .s-end{background:linear-gradient(0deg,rgba(22,17,42,.95) 0%,rgba(22,17,42,.75) 40%,rgba(22,17,42,.1) 100%)}
-.s-end .wrap{position:absolute;left:64px;bottom:72px;right:64px;display:flex;flex-direction:column;gap:14px}
+.s-end .wrap{position:absolute;left:64px;bottom:72px;right:330px;display:flex;flex-direction:column;gap:14px}
 .s-end h1{font-size:110px;color:var(--sauce)}
+.s-end .qr{position:absolute;right:64px;bottom:72px;margin:0;display:flex;flex-direction:column;align-items:center;gap:10px}
+.s-end .qr img{display:block;width:220px;height:220px;image-rendering:pixelated;box-shadow:6px 6px 0 #0b0818}
+.s-end .qr figcaption{font-family:var(--label);font-size:22px;color:var(--mustard)}
 
 .cite-foot{position:absolute;left:56px;right:56px;bottom:58px;font-family:var(--label);font-size:20px;line-height:1.3;color:var(--muted)}
 .gloss{position:absolute;left:56px;right:56px;bottom:104px;font-size:18px;line-height:1.5;color:var(--muted);border-top:2px solid var(--line);padding-top:14px}
@@ -481,6 +484,10 @@ ol.steps li::before{content:counter(st);font-family:var(--label);font-size:26px;
       <h1>Obrigado!</h1>
       <p class="lead" style="font-size:30px"><b>Thiago Cortez</b> · Agora vai lá colocar molho no seu jogo.</p>
     </div>
+    <figure class="qr">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAbwAAAG8AQAAAACNyy1yAAABv0lEQVR42u2cQQ6DQAhFSS/g/W/pDWx0RoZPXbkoLN7ENGp8m+aFwoC1493aDRAQEBAQEBAQEPBvoPnarpvXMc7Pz/TACX7s5QIEfLmmq9vhJ+Pm0HJcjhN5ElcB61yNTnp09dCapcVVwAau+vlpqRmuAnZ2Na6ZEuAqYL981f0cxVcSGFcBi10NZf7zwT4AYA9X049+rK0en8FVwDJXh5m2yii/KdL6Ri6uApbWVrE1sLZYb29nsMVVwAZxdVqq4fSxwsJVwMJ8dVX6dwHlwXY1XtkHAGyQA6RiSvapVvlPDgBY7arUTRbtXQltTANwFbBBXM3V1m6S0OIqYA9X4yZAjrRGjxWwS20179xZa6qwZEoWVwHr8lWZXPUQejcIZEgAVwGrayuPq/F3Xy7JAQA7uKpDVh5dvf2Kq4B9cgDRdZc261KXHACwurZKw9WrzWryeiCuAtbH1Rg541bAbrkRgKuATd5j3Q6ZAQivXYdpFr5VwDJXZ2q66UZrXMwEAnZz9ScZiMPYuArYx1WZXw39VnWYbxWwQb5q8qcWaUoQVwEb7QPoYFUaDyAHAKx1lT+mAwQEBAQEBAQEbAl+AfmZoEFtyZNJAAAAAElFTkSuQmCC" alt="QR code para teagu.github.io/Molho">
+      <figcaption>teagu.github.io/Molho</figcaption>
+    </figure>
   </section>
 
   <div id="chrome">
