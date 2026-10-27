@@ -11,9 +11,17 @@ São 41 slides navegáveis no navegador, com dois jogos pixel art rodando dentro
 
 Os trechos de código nos slides estão em C# no estilo Unity.
 
+## Acesse online
+
+**https://teagu.github.io/Molho/**
+
+<img src="docs/qrcode.png" alt="QR code para https://teagu.github.io/Molho/" width="200">
+
+O QR code também está em [`docs/qrcode.svg`](docs/qrcode.svg) (vetor, bom para imprimir ou pôr num slide).
+
 ## Como abrir
 
-Abra `index.html` num navegador (precisa de internet na primeira vez para baixar o Phaser do jsDelivr). Clique uma vez na tela para liberar o som e aperte **F** para tela cheia.
+Ou abra `index.html` localmente num navegador (precisa de internet na primeira vez para baixar o Phaser do jsDelivr). Clique uma vez na tela para liberar o som e aperte **F** para tela cheia.
 
 | Tecla | O que faz |
 |---|---|
@@ -42,6 +50,7 @@ src/build.py                embute assets e gera index.html e dist/
 assets/                     sprites, sons e fontes (CC0)
 tools/simular-plataforma.js testa cada fase com o truque desligado e ligado
 docs/guia-do-palestrante.md guia de apoio
+docs/qrcode.png, .svg       QR code para a página publicada
 ```
 
 Depois de editar algo em `src/` ou `assets/`, rode:
