@@ -7,7 +7,7 @@ São 42 slides navegáveis no navegador, com dois jogos pixel art rodando dentro
 1. **Abertura e teoria (slides 1 a 9):** quem fala, game feel segundo Steve Swink, as seis peças, os 7 princípios.
 2. **Parte 1, controles (slides 10 a 17):** um jogo de plataforma com a física de *Celeste*. Um bot com timing humano falha sem cada truque e passa com ele: coyote time, jump buffer, correção de quina, pulo variável e meia gravidade no ápice.
 3. **Parte 2, juice (slides 18 a 37):** um shooter top-down que começa sem nenhum efeito e ganha uma técnica por slide, até as 17 (animação, som, muzzle flash, flash branco, knockback, hitstop, screen shake, câmera, permanência, squash & stretch, sons graves, explosão, UI).
-4. **Exemplo real (slide 38):** pausa para abrir o [Harpooner](https://store.steampowered.com/app/4259930/Harpooner/) e mostrar as mesmas técnicas num jogo publicado.
+4. **Exemplo real (slide 38):** pausa para abrir o [Harpooner](https://store.steampowered.com/app/4259930/Harpooner/) e mostrar as mesmas técnicas num jogo de verdade.
 5. **Fechamento (slides 39 a 42):** cuidados, receita de bolso e referências.
 
 Os trechos de código nos slides estão em C# no estilo Unity.
@@ -73,6 +73,6 @@ node tools/simular-plataforma.js   # opcional: confere se o bot falha sem o truq
 
 - Steve Swink. *Game Feel: A Game Designer's Guide to Virtual Sensation*. Morgan Kaufmann, 2009.
 - Maddy Thorson. [*Celeste & Forgiveness*](https://maddymakesgames.com/articles/celeste_and_forgiveness/).
-- Martin Jonasson e Petri Purho. *Juice it or lose it*. GDC Europe, 2012.
-- Jan Willem Nijman (Vlambeer). *The Art of Screenshake*. INDIGO, 2013.
-- Squirrel Eiserloh. *Math for Game Programmers: Juicing Your Cameras With Math*. GDC, 2016.
+- Martin Jonasson e Petri Purho. [*Juice it or lose it*](https://www.youtube.com/watch?v=Fy0aCDmgnxg). GDC Europe, 2012.
+- Jan Willem Nijman (Vlambeer). [*The Art of Screenshake*](https://www.youtube.com/watch?v=AJdEqssNZ-U). INDIGO, 2013.
+- Squirrel Eiserloh. [*Math for Game Programmers: Juicing Your Cameras With Math*](https://www.youtube.com/watch?v=tu-Qe66AvtY). GDC, 2016.
